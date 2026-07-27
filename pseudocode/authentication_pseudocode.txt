@@ -1,0 +1,366 @@
+ONETEST - AUTHENTICATION AND AUTHORIZATION PSEUDOCODE
+
+
+PURPOSE
+-------
+
+This pseudocode describes how authentication and authorization work when
+a user logs into the OneTest application.
+
+There are two types of users:
+
+1. Employee/User
+2. Course Creator/Admin
+
+The backend verifies the user's credentials using the database and then
+checks the user's role to determine what they are authorized to access.
+
+
+API OPERATIONS USED
+-------------------
+
+1. POST /auth/login
+
+Purpose:
+Used to log the user into OneTest and verify their credentials.
+
+Why POST is used:
+POST is used because the frontend is SENDING data to the backend.
+
+The frontend sends:
+- Employee ID / Email
+- Password
+
+The backend receives these credentials and verifies them using the database.
+
+In simple terms:
+
+POST /auth/login = Send login credentials to the backend and verify the user.
+
+
+2. GET /auth/me
+
+Purpose:
+Used to get information about the user who is currently logged in.
+
+Why GET is used:
+GET is used because the frontend is REQUESTING existing information
+from the backend.
+
+The backend returns information such as:
+- Employee ID
+- Name
+- Role
+
+In simple terms:
+
+GET /auth/me = Get information about the currently logged-in user.
+
+
+
+AUTHENTICATION AND AUTHORIZATION PSEUDOCODE
+--------------------------------------------
+
+START
+
+
+USER:
+
+    Enter Employee ID / Email
+
+    Enter Password
+
+    Click Login
+
+
+FRONTEND:
+
+    Read Employee ID / Email
+
+    Read Password
+
+    Send login information to backend using:
+
+        POST /auth/login
+
+
+BACKEND:
+
+    Receive Employee ID / Email
+
+    Receive Password
+
+    Search database for user using Employee ID / Email
+
+
+DATABASE:
+
+    Search for matching user
+
+    Return user information to backend
+
+
+BACKEND:
+
+    IF user does not exist:
+
+        RETURN 401 "Invalid credentials"
+
+
+    Verify entered password with user's stored password hash
+
+
+    IF password is incorrect:
+
+        RETURN 401 "Invalid credentials"
+
+
+    Authentication successful
+
+
+    Check whether user's account is active
+
+
+    IF user is inactive:
+
+        RETURN 403 "Access denied"
+
+
+    Get user's role from database
+
+
+    IF role == "Employee":
+
+        Authorize user as Employee
+
+
+    ELSE IF role == "Course Creator":
+
+        Authorize user as Course Creator
+
+
+    ELSE:
+
+        RETURN 403 "Not authorized to access OneTest"
+
+
+    Create authenticated session/token
+
+
+    RETURN successful response containing:
+
+        Employee ID
+        Name
+        Role
+
+
+FRONTEND:
+
+    Receive response from backend
+
+
+    IF login was unsuccessful:
+
+        Display login error
+
+
+    IF login was successful:
+
+        Display popup:
+
+            "Login Successful! Welcome, <Name>"
+
+
+        Check returned role
+
+
+        IF role == "Employee":
+
+            Route user to Employee Dashboard
+
+
+        ELSE IF role == "Course Creator":
+
+            Route user to Course Creator Dashboard
+
+
+
+GET CURRENT USER
+----------------
+
+After the user has logged in, the frontend can request information
+about the currently authenticated user.
+
+
+FRONTEND:
+
+    Send:
+
+        GET /auth/me
+
+
+BACKEND:
+
+    Receive request
+
+    Check user's authenticated session/token
+
+
+    IF session/token is invalid:
+
+        RETURN 401 "Unauthorized"
+
+
+    Identify currently logged-in user
+
+    Get user information
+
+
+    RETURN:
+
+        Employee ID
+        Name
+        Role
+
+
+FRONTEND:
+
+    Receive current user information
+
+
+END
+
+
+
+COMPLETE FLOW
+-------------
+
+User enters Email/Employee ID + Password
+
+        ↓
+
+Frontend
+
+        ↓
+
+POST /auth/login
+
+        ↓
+
+Backend
+
+        ↓
+
+Database
+
+        ↓
+
+Find User
+
+        ↓
+
+Verify Password
+
+        ↓
+
+AUTHENTICATION
+"Is this really the user?"
+
+        ↓
+
+Check Account Status
+
+        ↓
+
+Check Role
+
+        ↓
+
+AUTHORIZATION
+"What is this user allowed to access?"
+
+        ↓
+
+Employee OR Course Creator
+
+        ↓
+
+Backend sends response to Frontend
+
+        ↓
+
+Frontend displays Welcome popup
+
+        ↓
+
+Employee → Employee Dashboard
+
+Course Creator → Course Creator Dashboard
+
+
+
+IMPORTANT TERMS
+---------------
+
+AUTHENTICATION:
+
+Authentication verifies WHO the user is.
+
+Example:
+
+The backend checks the Employee ID / Email and password against
+the information stored in the database.
+
+Correct credentials = Authenticated
+
+
+AUTHORIZATION:
+
+Authorization determines WHAT the authenticated user is allowed to access.
+
+Example:
+
+Employee
+    → Employee Dashboard
+    → Employee features
+
+Course Creator
+    → Course Creator Dashboard
+    → Course Creator features
+
+
+POST:
+
+Used when the frontend needs to SEND data to the backend.
+
+Example:
+
+POST /auth/login
+
+The frontend sends the Employee ID / Email and password to the backend.
+
+
+GET:
+
+Used when the frontend needs to GET existing information from the backend.
+
+Example:
+
+GET /auth/me
+
+The frontend asks the backend for information about the currently
+logged-in user.
+
+
+LOGIN SUCCESS POPUP:
+
+The login success popup does NOT require a separate API.
+
+POST /auth/login already returns the user's name and role.
+
+The frontend can use the returned name to display:
+
+"Login Successful! Welcome, <Name>"
+
+Therefore, no additional API request is required just to display
+the popup.
