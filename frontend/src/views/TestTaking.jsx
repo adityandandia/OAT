@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext.jsx';
 import { 
   ChevronLeft, ChevronRight, Bookmark, AlertCircle, CheckCircle, 
-  HelpCircle, Clock, Award, CornerDownLeft, XCircle
+  Clock, Award, XCircle, Code, FileText, Image as ImageIcon, Sparkles, Check
 } from 'lucide-react';
 
 const TestTaking = () => {
@@ -24,7 +24,7 @@ const TestTaking = () => {
 
   const totalQs = activeTest.questions.length;
 
-  // Answers State: maps index of question to index of selected choice
+  // Answers State: stores selected index (for MCQ/Embedded choices) or string text (for Short Answer)
   const [answers, setAnswers] = useState(Array(totalQs).fill(null));
   
   // Flags State: tracks if question is flagged for review
@@ -76,11 +76,20 @@ const TestTaking = () => {
     return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
   };
 
-  // Answer choice selector
+  // Answer selector for MCQ / Embedded Choice
   const handleSelectOption = (optIdx) => {
     setAnswers(prev => {
       const nextAnswers = [...prev];
       nextAnswers[currentIdx] = optIdx;
+      return nextAnswers;
+    });
+  };
+
+  // Text Answer input for Short Answer
+  const handleTextAnswerChange = (textVal) => {
+    setAnswers(prev => {
+      const nextAnswers = [...prev];
+      nextAnswers[currentIdx] = textVal;
       return nextAnswers;
     });
   };
@@ -114,12 +123,18 @@ const TestTaking = () => {
     clearInterval(timerRef.current);
     setShowConfirmModal(false);
 
-    // Compute score
+    // Compute score across MCQ, Short Answer, and Embedded Question Types
     let calculatedScore = 0;
     activeTest.questions.forEach((q, idx) => {
-      const selected = answers[idx];
-      if (selected !== null && selected === q.correctAnswer) {
-        calculatedScore++;
+      const userAns = answers[idx];
+      if (q.type === 'short_ans') {
+        if (typeof userAns === 'string' && userAns.trim().length > 5) {
+          calculatedScore++;
+        }
+      } else {
+        if (userAns !== null && userAns === q.correctAnswer) {
+          calculatedScore++;
+        }
       }
     });
 
@@ -138,7 +153,7 @@ const TestTaking = () => {
     }
   };
 
-  const countAnswered = answers.filter(a => a !== null).length;
+  const countAnswered = answers.filter(a => a !== null && a !== '').length;
   const countFlagged = flags.filter(f => f).length;
   const percentProgress = Math.round((countAnswered / totalQs) * 100);
 
@@ -159,8 +174,8 @@ const TestTaking = () => {
     }
 
     return (
-      <div className="min-h-screen bg-[#cebfe2] flex items-center justify-center p-6 font-sans antialiased animate-fade-in">
-        <div className="bg-white rounded-[2.5rem] w-full max-w-3xl shadow-2xl p-10 flex flex-col items-center">
+      <div className="min-h-screen bg-[#cebfe2] flex items-center justify-center p-6 font-sans antialiased animate-fade-in py-12">
+        <div className="bg-white rounded-[2.5rem] w-full max-w-3xl shadow-2xl p-10 flex flex-col items-center border border-purple-100">
           
           {/* Trophy Header */}
           <div className="w-20 h-20 bg-yellow-50 rounded-full flex items-center justify-center mb-4">
@@ -180,7 +195,7 @@ const TestTaking = () => {
             <div className="flex-1 text-center sm:text-left">
               <h3 className={`font-display font-extrabold text-xl ${ratingColor} mb-2`}>{rating} Performance</h3>
               <p className="text-xs text-gray-500 leading-relaxed mb-4">
-                You completed this assessment. Your score has been logged to your learning dashboard and shared with the Course Creator. You can view the question breakdown below.
+                You completed this assessment. Your score has been logged to your learning dashboard and shared with your Course Creator and Cohort.
               </p>
               <button 
                 onClick={() => navigate('/dashboard')}
@@ -197,39 +212,73 @@ const TestTaking = () => {
             <div className="flex flex-col gap-4 max-h-80 overflow-y-auto pr-2">
               {activeTest.questions.map((q, idx) => {
                 const userChoice = answers[idx];
-                const isCorrect = userChoice === q.correctAnswer;
+                const isShort = q.type === 'short_ans';
+                const isCorrect = isShort ? (typeof userChoice === 'string' && userChoice.trim().length > 5) : userChoice === q.correctAnswer;
+                
                 return (
                   <div key={q.id || idx} className={`p-4 rounded-xl border ${
                     isCorrect ? 'bg-green-50/50 border-green-150' : 'bg-red-50/50 border-red-150'
                   }`}>
-                    <h4 className="font-bold text-xs text-gray-800 mb-2 flex items-start gap-1.5">
-                      <span className="font-display font-extrabold text-purple-600 shrink-0">{idx + 1}.</span>
-                      <span>{q.text}</span>
-                    </h4>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4">
-                      {q.options.map((opt, optIdx) => {
-                        const isSelected = userChoice === optIdx;
-                        const isAnsCorrect = q.correctAnswer === optIdx;
-
-                        return (
-                          <div 
-                            key={optIdx}
-                            className={`p-2 rounded-lg text-[10px] font-semibold border ${
-                              isAnsCorrect 
-                                ? 'bg-green-100 border-green-300 text-green-800 flex items-center justify-between' 
-                                : isSelected 
-                                ? 'bg-red-100 border-red-300 text-red-800' 
-                                : 'bg-white border-gray-200 text-gray-500'
-                            }`}
-                          >
-                            <span>{String.fromCharCode(65 + optIdx)}. {opt}</span>
-                            {isAnsCorrect && <CheckCircle className="w-3.5 h-3.5 text-green-700 shrink-0" />}
-                            {isSelected && !isAnsCorrect && <XCircle className="w-3.5 h-3.5 text-red-700 shrink-0" />}
-                          </div>
-                        );
-                      })}
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-bold text-xs text-gray-800 flex items-start gap-1.5 pr-2">
+                        <span className="font-display font-extrabold text-purple-600 shrink-0">{idx + 1}.</span>
+                        <span>{q.text}</span>
+                      </h4>
+                      <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                        q.type === 'mcq' ? 'bg-purple-100 text-purple-800' :
+                        q.type === 'short_ans' ? 'bg-blue-100 text-blue-800' :
+                        'bg-pink-100 text-pink-800'
+                      }`}>
+                        {q.type === 'mcq' ? 'MCQ' : q.type === 'short_ans' ? 'Short Answer' : 'Embedded Question'}
+                      </span>
                     </div>
+
+                    {/* Render Embedded Code / Image if present */}
+                    {q.type === 'embedded' && q.codeSnippet && (
+                      <div className="bg-[#1e1e2e] text-purple-200 p-3 rounded-lg font-mono text-[10px] my-2 overflow-x-auto">
+                        <pre>{q.codeSnippet}</pre>
+                      </div>
+                    )}
+
+                    {/* Render Options or Short Answer response */}
+                    {isShort ? (
+                      <div className="mt-2 text-xs flex flex-col gap-1.5">
+                        <div className="bg-white p-2.5 rounded-lg border border-gray-200 text-gray-700">
+                          <span className="text-[10px] font-bold text-gray-400 block mb-1">Your Submission:</span>
+                          <p className="font-medium italic">{userChoice || '(No response submitted)'}</p>
+                        </div>
+                        {q.sampleAnswer && (
+                          <div className="bg-purple-50 p-2.5 rounded-lg border border-purple-100 text-purple-900">
+                            <span className="text-[10px] font-bold text-purple-600 block mb-1">Model Answer Key:</span>
+                            <p className="font-medium">{q.sampleAnswer}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4 mt-2">
+                        {q.options?.map((opt, optIdx) => {
+                          const isSelected = userChoice === optIdx;
+                          const isAnsCorrect = q.correctAnswer === optIdx;
+
+                          return (
+                            <div 
+                              key={optIdx}
+                              className={`p-2 rounded-lg text-[10px] font-semibold border ${
+                                isAnsCorrect 
+                                  ? 'bg-green-100 border-green-300 text-green-800 flex items-center justify-between' 
+                                  : isSelected 
+                                  ? 'bg-red-100 border-red-300 text-red-800' 
+                                  : 'bg-white border-gray-200 text-gray-500'
+                              }`}
+                            >
+                              <span>{String.fromCharCode(65 + optIdx)}. {opt}</span>
+                              {isAnsCorrect && <CheckCircle className="w-3.5 h-3.5 text-green-700 shrink-0" />}
+                              {isSelected && !isAnsCorrect && <XCircle className="w-3.5 h-3.5 text-red-700 shrink-0" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -262,7 +311,7 @@ const TestTaking = () => {
             {activeTest.title}
           </h1>
           <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-            Assessment Engine
+            Assessment Engine • Multi-Format Testing
           </span>
         </div>
 
@@ -286,14 +335,24 @@ const TestTaking = () => {
       {/* 2. BODY CONTENT SECTION */}
       <div className="flex-1 p-8 grid grid-cols-12 gap-8 items-start max-w-7xl w-full mx-auto overflow-hidden">
         
-        {/* Left 8 Columns: Question Stem & Options */}
-        <main className="col-span-12 lg:col-span-8 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between h-[65vh]">
+        {/* Left 8 Columns: Question Stem & Inputs */}
+        <main className="col-span-12 lg:col-span-8 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between min-h-[65vh]">
           <div>
             {/* Header info */}
             <div className="flex justify-between items-center mb-6">
-              <span className="text-xs font-bold text-purple-700 bg-purple-50 py-1 px-3 rounded-full">
-                Question {currentIdx + 1} of {totalQs}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-purple-700 bg-purple-50 py-1 px-3 rounded-full">
+                  Question {currentIdx + 1} of {totalQs}
+                </span>
+                <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full ${
+                  currentQuestion.type === 'mcq' ? 'bg-purple-100 text-purple-800' :
+                  currentQuestion.type === 'short_ans' ? 'bg-blue-100 text-blue-800' :
+                  'bg-pink-100 text-pink-800'
+                }`}>
+                  {currentQuestion.type === 'mcq' ? 'Multiple Choice' : currentQuestion.type === 'short_ans' ? 'Short Answer' : 'Embedded Question'}
+                </span>
+              </div>
+
               <button 
                 onClick={handleToggleFlag}
                 className={`flex items-center gap-1.5 text-xs font-bold transition-all py-1 px-3 rounded-lg border cursor-pointer ${
@@ -307,46 +366,91 @@ const TestTaking = () => {
               </button>
             </div>
 
-            {/* Question Text */}
-            <h2 className="font-display font-extrabold text-lg text-gray-800 mb-8 leading-snug">
+            {/* EMBEDDED CONTENT PREVIEW BOX */}
+            {currentQuestion.type === 'embedded' && (
+              <div className="mb-6 bg-gray-900 rounded-2xl p-5 border border-gray-800 text-white shadow-inner">
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-gray-800">
+                  <span className="text-[10px] font-bold text-purple-300 uppercase tracking-widest flex items-center gap-1.5">
+                    <Code className="w-3.5 h-3.5 text-purple-400" />
+                    Embedded Code Snippet
+                  </span>
+                  <span className="text-[9px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded-full border border-purple-800/50 font-mono">
+                    Interactive Context
+                  </span>
+                </div>
+
+                {currentQuestion.codeSnippet && (
+                  <pre className="font-mono text-xs text-purple-100 leading-relaxed overflow-x-auto p-2 bg-[#171723] rounded-xl border border-purple-900/30">
+                    <code>{currentQuestion.codeSnippet}</code>
+                  </pre>
+                )}
+              </div>
+            )}
+
+            {/* Question Stem Text */}
+            <h2 className="font-display font-extrabold text-lg text-gray-800 mb-6 leading-snug">
               {currentQuestion.text}
             </h2>
 
-            {/* Multiple Choice Options List */}
-            <div className="flex flex-col gap-4">
-              {currentQuestion.options.map((option, idx) => {
-                const isSelected = answers[currentIdx] === idx;
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelectOption(idx)}
-                    className={`w-full py-4 px-6 rounded-2xl border text-left font-semibold text-sm transition-all flex items-center justify-between cursor-pointer group ${
-                      isSelected 
-                        ? 'bg-purple-900 border-purple-900 text-white shadow-md shadow-purple-100' 
-                        : 'bg-white hover:bg-purple-50/50 border-gray-200 text-gray-700 hover:border-purple-200'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+            {/* QUESTION INPUT FORMATS */}
+            
+            {/* TYPE 1: SHORT ANSWER TEXTAREA */}
+            {currentQuestion.type === 'short_ans' ? (
+              <div className="flex flex-col gap-3">
+                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                  <FileText className="w-3.5 h-3.5 text-purple-600" />
+                  Type your explanation or response below:
+                </label>
+                <textarea 
+                  rows="5"
+                  placeholder="Provide a clear, detailed answer to the prompt..."
+                  value={typeof answers[currentIdx] === 'string' ? answers[currentIdx] : ''}
+                  onChange={(e) => handleTextAnswerChange(e.target.value)}
+                  className="w-full p-4 rounded-2xl border border-gray-250 focus:border-purple-600 focus:ring-2 focus:ring-purple-200 text-sm font-medium text-gray-800 placeholder-gray-400 resize-none transition-all shadow-xs"
+                />
+                <div className="flex justify-between items-center text-[10px] text-gray-400 font-semibold px-1">
+                  <span>Auto-saves as you type</span>
+                  <span>{(typeof answers[currentIdx] === 'string' ? answers[currentIdx] : '').length} Characters</span>
+                </div>
+              </div>
+            ) : (
+              /* TYPE 2 & 3: MULTIPLE CHOICE OPTIONS LIST (For MCQ and Embedded Choice) */
+              <div className="flex flex-col gap-3.5">
+                {currentQuestion.options?.map((option, idx) => {
+                  const isSelected = answers[currentIdx] === idx;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => handleSelectOption(idx)}
+                      className={`w-full py-4 px-6 rounded-2xl border text-left font-semibold text-sm transition-all flex items-center justify-between cursor-pointer group ${
                         isSelected 
-                          ? 'bg-white/20 text-white' 
-                          : 'bg-gray-100 text-gray-500 group-hover:bg-purple-100 group-hover:text-purple-700'
-                      }`}>
-                        {String.fromCharCode(65 + idx)}
-                      </span>
-                      <span>{option}</span>
-                    </div>
-                    {isSelected && (
-                      <CheckCircle className="w-5 h-5 text-white/80 shrink-0" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                          ? 'bg-purple-900 border-purple-900 text-white shadow-md shadow-purple-100' 
+                          : 'bg-white hover:bg-purple-50/50 border-gray-200 text-gray-700 hover:border-purple-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <span className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                          isSelected 
+                            ? 'bg-white/20 text-white' 
+                            : 'bg-gray-100 text-gray-500 group-hover:bg-purple-100 group-hover:text-purple-700'
+                        }`}>
+                          {String.fromCharCode(65 + idx)}
+                        </span>
+                        <span>{option}</span>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle className="w-5 h-5 text-white/80 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
           </div>
 
           {/* Navigation Control Buttons */}
-          <div className="flex justify-between items-center border-t border-gray-100 pt-6 mt-4">
+          <div className="flex justify-between items-center border-t border-gray-100 pt-6 mt-6">
             <button 
               disabled={currentIdx === 0}
               onClick={handlePrev}
@@ -360,15 +464,15 @@ const TestTaking = () => {
               onClick={handleNext}
               className="flex items-center gap-1.5 px-6 py-2.5 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold shadow-md shadow-pink-100 transition-all cursor-pointer"
             >
-              {currentIdx === totalQs - 1 ? 'Review & Submit' : 'Next'}
+              {currentIdx === totalQs - 1 ? 'Review & Submit' : 'Next Question'}
               {currentIdx < totalQs - 1 && <ChevronRight className="w-4 h-4" />}
             </button>
           </div>
 
         </main>
 
-        {/* Right 4 Columns: Timer, Statistics & Question Grid Navigation */}
-        <aside className="col-span-12 lg:col-span-4 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6 h-[65vh] justify-between">
+        {/* Right 4 Columns: Question Navigation Grid */}
+        <aside className="col-span-12 lg:col-span-4 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6 min-h-[65vh] justify-between">
           <div>
             <h3 className="font-display font-extrabold text-sm text-gray-800 uppercase tracking-wide mb-4">Question Grid</h3>
             
@@ -376,7 +480,8 @@ const TestTaking = () => {
             <div className="grid grid-cols-5 gap-3.5 mb-6">
               {[...Array(totalQs)].map((_, idx) => {
                 const isCurrent = currentIdx === idx;
-                const isAnswered = answers[idx] !== null;
+                const userAns = answers[idx];
+                const isAnswered = userAns !== null && userAns !== '';
                 const isFlagged = flags[idx];
                 
                 let cellClass = 'bg-gray-50 text-gray-400 hover:bg-gray-100 border border-gray-200';
@@ -398,7 +503,7 @@ const TestTaking = () => {
             </div>
             
             {/* Grid legend help */}
-            <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-gray-400 font-bold border-t border-gray-50 pt-4">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 text-[10px] text-gray-400 font-bold border-t border-gray-50 pt-4">
               <div className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 bg-purple-900 rounded-xs"></span>
                 <span>Answered ({countAnswered})</span>
@@ -438,7 +543,7 @@ const TestTaking = () => {
               Confirm Test Submission
             </h3>
             <p className="text-xs text-gray-500 leading-relaxed mb-6">
-              You are about to submit your test for grading. Please make sure you have answered all questions. You will not be able to change your answers after submitting.
+              You are about to submit your test for grading. Please make sure you have answered all questions.
             </p>
 
             <div className="bg-gray-50 p-4 rounded-2xl border border-gray-150 flex flex-col gap-2.5 text-xs text-gray-600 mb-6 font-semibold">

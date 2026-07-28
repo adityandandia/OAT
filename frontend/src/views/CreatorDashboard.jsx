@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Bell, ChevronDown, List, LayoutDashboard, FileSpreadsheet, Users, 
   Settings as SettingsIcon, LogOut, Eye, Edit2, Trash2, Search, Plus, 
-  Trash, X, Clock, HelpCircle, Check, FileText
+  Trash, X, Clock, HelpCircle, Check, FileText, Code, Image as ImageIcon,
+  BarChart3, PieChart, Sparkles, UserPlus, FolderPlus, Download, Award, Target
 } from 'lucide-react';
 
 const CreatorDashboard = () => {
@@ -16,7 +17,12 @@ const CreatorDashboard = () => {
     updateTest, 
     deleteTest, 
     studentResults, 
-    getPerformanceDistribution 
+    cohorts,
+    createCohort,
+    deleteCohort,
+    addStudentToCohort,
+    getPerformanceDistribution,
+    getInfographicAnalytics
   } = useApp();
   
   const navigate = useNavigate();
@@ -24,8 +30,9 @@ const CreatorDashboard = () => {
   // Navigation menu state
   const [activeMenu, setActiveMenu] = useState('Course Creator');
 
-  // Search filter for Student Results
+  // Search filter for Student Results & Cohorts
   const [searchStudent, setSearchStudent] = useState('');
+  const [searchCohort, setSearchCohort] = useState('');
 
   // Pagination states
   const [testPage, setTestPage] = useState(1);
@@ -33,7 +40,7 @@ const CreatorDashboard = () => {
   const testsPerPage = 5;
   const studentsPerPage = 6;
 
-  // Modals / Form Dialog States
+  // Test Modal / Form Dialog States
   const [showFormModal, setShowFormModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTestId, setActiveTestId] = useState(null);
@@ -42,13 +49,39 @@ const CreatorDashboard = () => {
   const [testTitle, setTestTitle] = useState('');
   const [testDesc, setTestDesc] = useState('');
   const [testDuration, setTestDuration] = useState('30');
+  
+  // Questions array with question types (mcq, short_ans, embedded)
   const [testQuestions, setTestQuestions] = useState([
-    { text: 'Question 1', options: ['Option A', 'Option B', 'Option C', 'Option D'], correctAnswer: 0 }
+    { 
+      type: 'mcq', 
+      text: '', 
+      options: ['', '', '', ''], 
+      correctAnswer: 0 
+    }
   ]);
 
   // Preview Test Modal State
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewTest, setPreviewTest] = useState(null);
+
+  // Cohort Modal States
+  const [showCohortModal, setShowCohortModal] = useState(false);
+  const [newCohortName, setNewCohortName] = useState('');
+  const [newCohortDesc, setNewCohortDesc] = useState('');
+
+  // Add Student to Cohort Modal State
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [selectedCohortForStudent, setSelectedCohortForStudent] = useState(null);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentEmail, setNewStudentEmail] = useState('');
+
+  // Toast / Notification banner
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const handleLogout = () => {
     logout();
@@ -62,7 +95,7 @@ const CreatorDashboard = () => {
     setTestDesc('');
     setTestDuration('30');
     setTestQuestions([
-      { text: '', options: ['', '', '', ''], correctAnswer: 0 }
+      { type: 'mcq', text: '', options: ['', '', '', ''], correctAnswer: 0 }
     ]);
     setShowFormModal(true);
   };
@@ -75,9 +108,15 @@ const CreatorDashboard = () => {
     setTestDesc(test.description);
     setTestDuration(test.duration.toString());
     setTestQuestions(test.questions.map(q => ({
+      type: q.type || 'mcq',
       text: q.text,
-      options: [...q.options],
-      correctAnswer: q.correctAnswer
+      options: q.options ? [...q.options] : ['', '', '', ''],
+      correctAnswer: q.correctAnswer || 0,
+      sampleAnswer: q.sampleAnswer || '',
+      keywords: q.keywords ? q.keywords.join(', ') : '',
+      embedType: q.embedType || 'code',
+      codeSnippet: q.codeSnippet || '',
+      embedUrl: q.embedUrl || ''
     })));
     setShowFormModal(true);
   };
@@ -87,7 +126,7 @@ const CreatorDashboard = () => {
     e.preventDefault();
     if (!testTitle.trim()) return;
 
-    // Filter out incomplete questions
+    // Clean questions list
     const cleanQuestions = testQuestions.filter(q => q.text.trim() !== '');
     if (cleanQuestions.length === 0) {
       alert("Please add at least one question with text.");
@@ -98,42 +137,81 @@ const CreatorDashboard = () => {
       title: testTitle,
       description: testDesc,
       duration: parseInt(testDuration) || 30,
-      questions: cleanQuestions.map((q, idx) => ({
-        id: `q-${idx}-${Date.now()}`,
-        text: q.text,
-        options: q.options.map(opt => opt.trim() || 'Choice Option'),
-        correctAnswer: parseInt(q.correctAnswer) || 0
-      }))
+      questions: cleanQuestions.map((q, idx) => {
+        const base = {
+          id: `q-${idx}-${Date.now()}`,
+          type: q.type,
+          text: q.text
+        };
+        
+        if (q.type === 'mcq') {
+          return {
+            ...base,
+            options: q.options.map(opt => opt.trim() || 'Option'),
+            correctAnswer: parseInt(q.correctAnswer) || 0
+          };
+        } else if (q.type === 'short_ans') {
+          return {
+            ...base,
+            sampleAnswer: q.sampleAnswer || 'Model answer prompt',
+            keywords: typeof q.keywords === 'string' ? q.keywords.split(',').map(k => k.trim()) : (q.keywords || [])
+          };
+        } else if (q.type === 'embedded') {
+          return {
+            ...base,
+            embedType: q.embedType || 'code',
+            codeSnippet: q.codeSnippet || '',
+            embedUrl: q.embedUrl || '',
+            options: q.options.map(opt => opt.trim() || 'Option'),
+            correctAnswer: parseInt(q.correctAnswer) || 0
+          };
+        }
+        return base;
+      })
     };
 
     if (isEditing) {
       updateTest(activeTestId, testPayload);
+      showToast("Test updated successfully!");
     } else {
       createTest(testPayload);
+      showToast("New test created successfully!");
     }
     setShowFormModal(false);
   };
 
-  // Form question managers
-  const handleAddQuestion = () => {
-    setTestQuestions(prev => [
-      ...prev,
-      { text: '', options: ['', '', '', ''], correctAnswer: 0 }
-    ]);
+  // Question form item managers
+  const handleAddQuestion = (type = 'mcq') => {
+    if (type === 'short_ans') {
+      setTestQuestions(prev => [
+        ...prev,
+        { type: 'short_ans', text: '', sampleAnswer: '', keywords: '' }
+      ]);
+    } else if (type === 'embedded') {
+      setTestQuestions(prev => [
+        ...prev,
+        { type: 'embedded', text: '', embedType: 'code', codeSnippet: `// Enter sample code here\nconst express = require('express');`, options: ['', '', '', ''], correctAnswer: 0 }
+      ]);
+    } else {
+      setTestQuestions(prev => [
+        ...prev,
+        { type: 'mcq', text: '', options: ['', '', '', ''], correctAnswer: 0 }
+      ]);
+    }
   };
 
   const handleRemoveQuestion = (idx) => {
     setTestQuestions(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleQuestionTextChange = (idx, val) => {
-    setTestQuestions(prev => prev.map((q, i) => i === idx ? { ...q, text: val } : q));
+  const handleQuestionChange = (idx, field, val) => {
+    setTestQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: val } : q));
   };
 
   const handleOptionChange = (qIdx, optIdx, val) => {
     setTestQuestions(prev => prev.map((q, i) => {
       if (i === qIdx) {
-        const nextOpts = [...q.options];
+        const nextOpts = [...(q.options || ['', '', '', ''])];
         nextOpts[optIdx] = val;
         return { ...q, options: nextOpts };
       }
@@ -141,23 +219,48 @@ const CreatorDashboard = () => {
     }));
   };
 
-  const handleCorrectAnswerChange = (qIdx, val) => {
-    setTestQuestions(prev => prev.map((q, i) => i === qIdx ? { ...q, correctAnswer: parseInt(val) } : q));
-  };
-
   const handleOpenPreview = (test) => {
     setPreviewTest(test);
     setShowPreviewModal(true);
   };
 
-  // Calculate dynamic data
+  // Create Cohort Handler
+  const handleSaveCohort = (e) => {
+    e.preventDefault();
+    if (!newCohortName.trim()) return;
+    createCohort({ name: newCohortName, description: newCohortDesc });
+    setNewCohortName('');
+    setNewCohortDesc('');
+    setShowCohortModal(false);
+    showToast("New cohort created successfully!");
+  };
+
+  // Add Student to Cohort Handler
+  const handleAddStudentSubmit = (e) => {
+    e.preventDefault();
+    if (!newStudentName.trim() || !selectedCohortForStudent) return;
+    addStudentToCohort(selectedCohortForStudent.id, newStudentName, newStudentEmail);
+    setNewStudentName('');
+    setNewStudentEmail('');
+    setShowAddStudentModal(false);
+    showToast(`Added ${newStudentName} to cohort!`);
+  };
+
+  // Dynamic Data & Analytics
   const dist = getPerformanceDistribution();
+  const infographicData = getInfographicAnalytics();
 
   // Search filtered students list
   const filteredStudents = studentResults.filter(student => 
     student.name.toLowerCase().includes(searchStudent.toLowerCase()) ||
     student.status.toLowerCase().includes(searchStudent.toLowerCase()) ||
     student.testTitle.toLowerCase().includes(searchStudent.toLowerCase())
+  );
+
+  // Search filtered cohorts list
+  const filteredCohorts = cohorts.filter(c => 
+    c.name.toLowerCase().includes(searchCohort.toLowerCase()) ||
+    c.description.toLowerCase().includes(searchCohort.toLowerCase())
   );
 
   // Paginated lists
@@ -170,12 +273,20 @@ const CreatorDashboard = () => {
   // SVG Donut Chart geometry calculation
   const radius = 50;
   const strokeWidth = 14;
-  const circumference = 2 * Math.PI * radius; // ~314.159
+  const circumference = 2 * Math.PI * radius;
   let accumulatedPercent = 0;
 
   return (
-    <div className="min-h-screen flex bg-[#cebfe2] font-sans antialiased animate-fade-in">
+    <div className="min-h-screen flex bg-[#cebfe2] font-sans antialiased animate-fade-in relative">
       
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 bg-purple-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-purple-700 z-50 flex items-center gap-3 animate-fade-in">
+          <Sparkles className="w-5 h-5 text-pink-400" />
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
+
       {/* 1. LEFT SIDEBAR */}
       <aside className="w-72 bg-white flex flex-col justify-between border-r border-gray-150 py-8 px-6 shrink-0 shadow-lg">
         
@@ -185,13 +296,9 @@ const CreatorDashboard = () => {
             {/* Logo Stack (Symbol + SHAI) */}
             <div className="flex flex-col items-center shrink-0">
               <svg className="w-10 h-10" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                {/* Pink shape (Top/Left) */}
                 <path d="M 76 44 A 24 24 0 0 1 124 44 L 124 100 A 24 24 0 0 1 100 124 L 44 124 A 24 24 0 0 1 44 76 L 76 76 Z" fill="#e9386d" />
-                {/* Purple shape (Bottom/Right) */}
                 <path d="M 124 156 A 24 24 0 0 1 76 156 L 76 100 A 24 24 0 0 1 100 76 L 156 76 A 24 24 0 0 1 156 124 L 124 124 Z" fill="#5e328c" />
-                {/* Overlap shape (Dark Lens) */}
                 <path d="M 76 124 L 76 100 A 24 24 0 0 1 100 76 L 124 76 L 124 124 Z" fill="#27142b" />
-                {/* TM */}
                 <text x="148" y="36" fill="#7a7a7a" fontSize="18" fontFamily="sans-serif" fontWeight="bold">TM</text>
               </svg>
               <div className="flex items-start mt-0.5 relative">
@@ -302,330 +409,644 @@ const CreatorDashboard = () => {
           </div>
         </header>
 
-        {/* Content canvas */}
+        {/* Content canvas switcher */}
         <div className="flex-1 p-10 flex flex-col gap-8">
           
-          {/* Section 1: Manage Tests Table */}
-          <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="font-display font-extrabold text-xl text-gray-800">Manage Tests</h2>
-              <button 
-                onClick={handleOpenCreate}
-                className="py-2.5 px-6 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                Create New Test
-              </button>
-            </div>
+          {/* VIEW 1: COURSE CREATOR / MAIN DASHBOARD / ALL TESTS */}
+          {(activeMenu === 'Course Creator' || activeMenu === 'Dashboard' || activeMenu === 'All Tests') && (
+            <>
+              {/* Section 1: Manage Tests Table */}
+              <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="font-display font-extrabold text-xl text-gray-800">Manage Assessments</h2>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">Create and configure tests with MCQ, Short Answer, and Embedded question types.</p>
+                  </div>
+                  <button 
+                    onClick={handleOpenCreate}
+                    className="py-2.5 px-6 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create New Test
+                  </button>
+                </div>
 
-            {/* Tests list table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
-                    <th className="py-3.5 px-4 rounded-l-xl">Test Title</th>
-                    <th className="py-3.5 px-4 w-1/3">Description</th>
-                    <th className="py-3.5 px-4 text-center">Total Questions</th>
-                    <th className="py-3.5 px-4 text-center">Duration</th>
-                    <th className="py-3.5 px-4 text-center">Created On</th>
-                    <th className="py-3.5 px-4 text-center rounded-r-xl w-32">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
-                  {paginatedTests.map(test => (
-                    <tr key={test.id} className="hover:bg-gray-50/70 transition-colors">
-                      <td className="py-3.5 px-4 font-bold text-gray-800">{test.title}</td>
-                      <td className="py-3.5 px-4 text-gray-400 leading-relaxed font-normal">{test.description}</td>
-                      <td className="py-3.5 px-4 text-center font-bold">{test.totalQuestions}</td>
-                      <td className="py-3.5 px-4 text-center font-bold text-[#e54e73]">{test.duration} mins</td>
-                      <td className="py-3.5 px-4 text-center text-gray-400">{test.createdOn}</td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex justify-center items-center gap-3">
-                          <button 
-                            onClick={() => handleOpenPreview(test)}
-                            title="Preview Test"
-                            className="p-1.5 hover:bg-purple-50 text-purple-600 hover:text-purple-800 rounded-lg transition-colors cursor-pointer"
+                {/* Tests list table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                        <th className="py-3.5 px-4 rounded-l-xl">Test Title</th>
+                        <th className="py-3.5 px-4 w-1/3">Description</th>
+                        <th className="py-3.5 px-4 text-center">Total Questions</th>
+                        <th className="py-3.5 px-4 text-center">Formats Included</th>
+                        <th className="py-3.5 px-4 text-center">Duration</th>
+                        <th className="py-3.5 px-4 text-center rounded-r-xl w-32">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
+                      {paginatedTests.map(test => (
+                        <tr key={test.id} className="hover:bg-gray-50/70 transition-colors">
+                          <td className="py-3.5 px-4 font-bold text-gray-800">{test.title}</td>
+                          <td className="py-3.5 px-4 text-gray-400 leading-relaxed font-normal">{test.description}</td>
+                          <td className="py-3.5 px-4 text-center font-bold">{test.totalQuestions}</td>
+                          <td className="py-3.5 px-4 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              <span className="text-[9px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md">MCQ</span>
+                              <span className="text-[9px] font-extrabold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">Short</span>
+                              <span className="text-[9px] font-extrabold bg-pink-100 text-pink-800 px-2 py-0.5 rounded-md">Embed</span>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-center font-bold text-[#e54e73]">{test.duration} mins</td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex justify-center items-center gap-3">
+                              <button 
+                                onClick={() => handleOpenPreview(test)}
+                                title="Preview Test"
+                                className="p-1.5 hover:bg-purple-50 text-purple-600 hover:text-purple-800 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleOpenEdit(test)}
+                                title="Edit Test"
+                                className="p-1.5 hover:bg-blue-50 text-blue-600 hover:text-blue-800 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  if (confirm(`Delete test "${test.title}"?`)) deleteTest(test.id);
+                                }}
+                                title="Delete Test"
+                                className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                      {tests.length === 0 && (
+                        <tr>
+                          <td colSpan="6" className="text-center py-8 text-gray-400">No tests available. Click "Create New Test" to get started.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination Controls */}
+                {tests.length > 0 && (
+                  <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
+                    <span className="text-[10px] text-gray-400 font-semibold select-none">
+                      Showing {(testPage - 1) * testsPerPage + 1} to {Math.min(testPage * testsPerPage, tests.length)} of {tests.length} tests
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        disabled={testPage === 1}
+                        onClick={() => setTestPage(prev => prev - 1)}
+                        className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                      >
+                        &lt;
+                      </button>
+                      {[...Array(totalTestPages)].map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setTestPage(i + 1)}
+                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                            testPage === i + 1 
+                              ? 'bg-purple-900 text-white shadow-xs' 
+                              : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button 
+                        disabled={testPage === totalTestPages}
+                        onClick={() => setTestPage(prev => prev + 1)}
+                        className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              {/* Section 2: Two Column Dashboard Widgets */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* Widget 1: Test Overview & Donut Chart (5 Cols) */}
+                <section className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-4">
+                  <div>
+                    <h2 className="font-display font-extrabold text-xl text-gray-800 mb-4">Test overview</h2>
+                    
+                    {/* Stats badge grid */}
+                    <div className="grid grid-cols-4 gap-3 mb-4">
+                      <div className="bg-purple-50 p-2 px-3 rounded-xl border border-purple-100 flex flex-col items-center justify-center">
+                        <span className="text-lg font-black text-purple-700">{dist.total}</span>
+                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Total Students</span>
+                      </div>
+                      <div className="bg-green-50 p-2 px-3 rounded-xl border border-green-100 flex flex-col items-center justify-center">
+                        <span className="text-lg font-black text-green-700">{dist.total - 4}</span>
+                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Completed</span>
+                      </div>
+                      <div className="bg-blue-50 p-2 px-3 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
+                        <span className="text-lg font-black text-blue-700">4</span>
+                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">In Progress</span>
+                      </div>
+                      <div className="bg-red-50 p-2 px-3 rounded-xl border border-red-100 flex flex-col items-center justify-center">
+                        <span className="text-lg font-black text-red-700">0</span>
+                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Not Attempted</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Performance Pie/Donut Chart Area */}
+                  <div className="flex flex-col gap-4 items-center border-t border-gray-100 pt-4">
+                    <h3 className="font-display font-bold text-xs text-gray-400 uppercase tracking-widest self-start">Performance Summary</h3>
+                    
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-8 w-full">
+                      <div className="relative w-40 h-40 shrink-0">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
+                          <circle 
+                            cx="60" 
+                            cy="60" 
+                            r={radius} 
+                            fill="transparent" 
+                            stroke="#f3f4f6" 
+                            strokeWidth={strokeWidth} 
+                          />
+                          {dist.categories.map((cat, idx) => {
+                            const percent = (cat.count / dist.total) * 100;
+                            const strokeDash = (percent / 100) * circumference;
+                            const dashOffset = circumference - (accumulatedPercent / 100) * circumference;
+                            accumulatedPercent += percent;
+
+                            return (
+                              <circle
+                                key={idx}
+                                cx="60"
+                                cy="60"
+                                r={radius}
+                                fill="transparent"
+                                stroke={cat.color}
+                                strokeWidth={strokeWidth}
+                                strokeDasharray={`${strokeDash} ${circumference - strokeDash}`}
+                                strokeDashoffset={dashOffset}
+                                strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out hover:opacity-85"
+                              />
+                            );
+                          })}
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none">
+                          <span className="font-display font-extrabold text-2xl text-gray-800 leading-none">{dist.total}</span>
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Students</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-2 shrink-0">
+                        {dist.categories.map((cat, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }}></span>
+                            <span>{cat.name.split(' ')[0]}</span>
+                            <span className="text-gray-400 font-normal">({cat.count} / {cat.percentage}%)</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </section>
+
+                {/* Widget 2: Employee Submissions List (7 Cols) */}
+                <section className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6 self-stretch">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h2 className="font-display font-extrabold text-xl text-gray-800">Employee Submissions</h2>
+                      <p className="text-xs text-gray-400 font-medium mt-0.5">Track office employee performance, current test scores, and historical percentages.</p>
+                    </div>
+                    
+                    <div className="relative w-full sm:w-60">
+                      <input 
+                        type="text" 
+                        placeholder="Search Employee.." 
+                        value={searchStudent}
+                        onChange={(e) => { setSearchStudent(e.target.value); setStudentPage(1); }}
+                        className="w-full py-2 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
+                      />
+                      <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto flex-1">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                          <th className="py-3 px-4 rounded-l-xl">Employee Name</th>
+                          <th className="py-3 px-4 text-center">Status</th>
+                          <th className="py-3 px-4 text-center">Score</th>
+                          <th className="py-3 px-4 text-center">Highest Percentage</th>
+                          <th className="py-3 px-4 text-center">Reattempts</th>
+                          <th className="py-3 px-4 text-center rounded-r-xl">Completed On</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
+                        {paginatedStudents.map((student, idx) => {
+                          const reattemptVal = student.reattempts !== undefined ? student.reattempts : (student.id === '1' ? 3 : student.id === '2' ? 2 : student.id === '3' ? 4 : student.id === '4' ? 1 : student.id === '5' ? 2 : (student.percentage > 0 ? 1 : 0));
+                          const highestVal = student.highestPercentage !== undefined ? student.highestPercentage : (student.percentage ? Math.min(100, student.percentage + 4) : 0);
+
+                          return (
+                            <tr key={student.id || idx} className="hover:bg-gray-50/70 transition-colors">
+                              <td className="py-3.5 px-4 whitespace-nowrap">
+                                <div className="flex flex-col">
+                                  <span className="font-bold text-gray-800">{student.name}</span>
+                                  <span className="text-[10px] text-purple-700 font-medium">{student.role || 'Employee'} • <span className="text-gray-400 font-normal">{student.testTitle}</span></span>
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                <span className={`inline-block py-1 px-3 rounded-full font-bold text-[9px] ${
+                                  student.status === 'Completed' ? 'bg-green-50 text-green-700' :
+                                  student.status === 'In Progress' ? 'bg-blue-50 text-blue-700' :
+                                  'bg-red-50 text-red-700'
+                                }`}>
+                                  {student.status}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center font-bold text-purple-700 whitespace-nowrap">
+                                {student.status === 'Completed' ? `${student.score} / ${student.totalQs}` : '-'}
+                              </td>
+                              <td className="py-3.5 px-4 text-center font-extrabold text-green-700 whitespace-nowrap">
+                                {student.status === 'Completed' ? `${highestVal}%` : '-'}
+                              </td>
+                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                <span className="inline-block py-1 px-3.5 rounded-full font-extrabold text-[10px] bg-purple-50 text-purple-800 border border-purple-150">
+                                  {reattemptVal} {reattemptVal === 1 ? 'Reattempt' : 'Reattempts'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 text-center text-gray-400 font-semibold whitespace-nowrap">{student.completedOn}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {filteredStudents.length > 0 && (
+                    <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
+                      <span className="text-[10px] text-gray-400 font-semibold select-none">
+                        Showing {(studentPage - 1) * studentsPerPage + 1} to {Math.min(studentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} employees
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          disabled={studentPage === 1}
+                          onClick={() => setStudentPage(prev => prev - 1)}
+                          className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                        >
+                          &lt;
+                        </button>
+                        {[...Array(totalStudentPages)].map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setStudentPage(i + 1)}
+                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                              studentPage === i + 1 
+                                ? 'bg-purple-900 text-white shadow-xs' 
+                                : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
+                            }`}
                           >
-                            <Eye className="w-4 h-4" />
+                            {i + 1}
                           </button>
-                          <button 
-                            onClick={() => handleOpenEdit(test)}
-                            title="Edit Test"
-                            className="p-1.5 hover:bg-blue-50 text-blue-600 hover:text-blue-800 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
+                        ))}
+                        <button 
+                          disabled={studentPage === totalStudentPages}
+                          onClick={() => setStudentPage(prev => prev + 1)}
+                          className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                        >
+                          &gt;
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+              </div>
+            </>
+          )}
+
+          {/* VIEW 2: COHORT MANAGEMENT */}
+          {activeMenu === 'Cohort' && (
+            <div className="flex flex-col gap-8">
+              
+              {/* Cohort Stats Banner */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                    <Users className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Active Cohorts</span>
+                    <span className="font-display font-extrabold text-2xl text-purple-950">{cohorts.length} Batches</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-pink-100 text-[#e54e73] flex items-center justify-center shrink-0">
+                    <UserPlus className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Students</span>
+                    <span className="font-display font-extrabold text-2xl text-purple-950">
+                      {cohorts.reduce((acc, c) => acc + c.totalStudents, 0)} Students
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+                    <Target className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cohort Avg Grade</span>
+                    <span className="font-display font-extrabold text-2xl text-green-700">83.3%</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <Award className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Completion Rate</span>
+                    <span className="font-display font-extrabold text-2xl text-blue-700">91.6%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cohort Controls & List */}
+              <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="font-display font-extrabold text-xl text-gray-800">Learning Cohorts & Batches</h2>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">Manage student cohorts, assign test packages, and track team progress.</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="relative flex-1 sm:w-60">
+                      <input 
+                        type="text" 
+                        placeholder="Search Cohorts..." 
+                        value={searchCohort}
+                        onChange={(e) => setSearchCohort(e.target.value)}
+                        className="w-full py-2.5 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
+                      />
+                      <Search className="absolute right-3.5 top-3 w-4 h-4 text-gray-400" />
+                    </div>
+
+                    <button 
+                      onClick={() => setShowCohortModal(true)}
+                      className="py-2.5 px-5 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2 cursor-pointer shrink-0"
+                    >
+                      <FolderPlus className="w-4 h-4" />
+                      New Cohort
+                    </button>
+                  </div>
+                </div>
+
+                {/* Cohort Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {filteredCohorts.map(cohort => (
+                    <div key={cohort.id} className="bg-gray-50/80 border border-gray-150 hover:border-purple-200 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="font-display font-extrabold text-base text-gray-800">{cohort.name}</h3>
                           <button 
                             onClick={() => {
-                              if (confirm(`Delete test "${test.title}"?`)) deleteTest(test.id);
+                              if (confirm(`Delete cohort "${cohort.name}"?`)) deleteCohort(cohort.id);
                             }}
-                            title="Delete Test"
-                            className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors cursor-pointer"
+                            className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {tests.length === 0 && (
-                    <tr>
-                      <td colSpan="6" className="text-center py-8 text-gray-400">No tests available. Click "Create New Test" to get started.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        <p className="text-xs text-gray-500 leading-relaxed mb-6 font-medium">{cohort.description}</p>
+                      </div>
 
-            {/* Pagination Controls */}
-            {tests.length > 0 && (
-              <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
-                <span className="text-[10px] text-gray-400 font-semibold select-none">
-                  Showing {(testPage - 1) * testsPerPage + 1} to {Math.min(testPage * testsPerPage, tests.length)} of {tests.length} tests
-                </span>
-                <div className="flex items-center gap-1">
-                  <button 
-                    disabled={testPage === 1}
-                    onClick={() => setTestPage(prev => prev - 1)}
-                    className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                  >
-                    &lt;
-                  </button>
-                  {[...Array(totalTestPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setTestPage(i + 1)}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                        testPage === i + 1 
-                          ? 'bg-purple-900 text-white shadow-xs' 
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
-                      }`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button 
-                    disabled={testPage === totalTestPages}
-                    onClick={() => setTestPage(prev => prev + 1)}
-                    className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                  >
-                    &gt;
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
+                      <div className="flex flex-col gap-4 border-t border-gray-150 pt-4">
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
+                          <span className="text-gray-400 font-semibold text-[10px] uppercase">Enrolled Members:</span>
+                          <span className="text-purple-900 bg-purple-100 py-0.5 px-2.5 rounded-full">{cohort.totalStudents} Students</span>
+                        </div>
 
-          {/* Section 2: Two Column Dashboard Widgets */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            
-            {/* Widget 1: Test Overview & Donut Chart (5 Cols) */}
-            <section className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6 self-stretch justify-between">
-              <div>
-                <h2 className="font-display font-extrabold text-xl text-gray-800 mb-6">Test overview</h2>
-                
-                {/* Stats badge grid */}
-                <div className="grid grid-cols-4 gap-3 mb-8">
-                  <div className="bg-purple-50 p-2 px-3 rounded-xl border border-purple-100 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black text-purple-700">{dist.total}</span>
-                    <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Total Students</span>
-                  </div>
-                  <div className="bg-green-50 p-2 px-3 rounded-xl border border-green-100 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black text-green-700">{dist.total - 4}</span>
-                    <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Completed</span>
-                  </div>
-                  <div className="bg-blue-50 p-2 px-3 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black text-blue-700">4</span>
-                    <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">In Progress</span>
-                  </div>
-                  <div className="bg-red-50 p-2 px-3 rounded-xl border border-red-100 flex flex-col items-center justify-center">
-                    <span className="text-lg font-black text-red-700">0</span>
-                    <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Not Attempted</span>
-                  </div>
-                </div>
-              </div>
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
+                          <span className="text-gray-400 font-semibold text-[10px] uppercase">Average Score:</span>
+                          <span className="text-green-700 bg-green-50 py-0.5 px-2.5 rounded-full">{cohort.avgScore}%</span>
+                        </div>
 
-              {/* Performance Pie/Donut Chart Area */}
-              <div className="flex flex-col gap-6 items-center">
-                <h3 className="font-display font-bold text-xs text-gray-400 uppercase tracking-widest self-start -mb-2">Performance Summary</h3>
-                
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-8 w-full">
-                  {/* SVG Donut Chart */}
-                  <div className="relative w-40 h-40 shrink-0">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                      {/* Outer backing circle */}
-                      <circle 
-                        cx="60" 
-                        cy="60" 
-                        r={radius} 
-                        fill="transparent" 
-                        stroke="#f3f4f6" 
-                        strokeWidth={strokeWidth} 
-                      />
-                      
-                      {/* Dynamic stacked arcs */}
-                      {dist.categories.map((cat, idx) => {
-                        const percent = (cat.count / dist.total) * 100;
-                        const strokeDash = (percent / 100) * circumference;
-                        const offset = circumference - strokeDash;
-                        const dashOffset = circumference - (accumulatedPercent / 100) * circumference;
-                        
-                        accumulatedPercent += percent;
+                        {/* Student Avatars list */}
+                        <div className="flex justify-between items-center pt-2">
+                          <div className="flex -space-x-2">
+                            {cohort.students.slice(0, 4).map((s, idx) => (
+                              <div key={idx} className="w-7 h-7 rounded-full bg-purple-200 text-purple-900 font-bold text-[10px] flex items-center justify-center border-2 border-white shadow-xs">
+                                {s.name[0]}
+                              </div>
+                            ))}
+                            {cohort.students.length > 4 && (
+                              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 font-bold text-[10px] flex items-center justify-center border-2 border-white">
+                                +{cohort.students.length - 4}
+                              </div>
+                            )}
+                          </div>
 
-                        return (
-                          <circle
-                            key={idx}
-                            cx="60"
-                            cy="60"
-                            r={radius}
-                            fill="transparent"
-                            stroke={cat.color}
-                            strokeWidth={strokeWidth}
-                            strokeDasharray={`${strokeDash} ${circumference - strokeDash}`}
-                            strokeDashoffset={dashOffset}
-                            strokeLinecap="round"
-                            className="transition-all duration-1000 ease-out hover:opacity-85"
-                          />
-                        );
-                      })}
-                    </svg>
-                    {/* Inner centered text label */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none">
-                      <span className="font-display font-extrabold text-2xl text-gray-800 leading-none">{dist.total}</span>
-                      <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Students</span>
+                          <button 
+                            onClick={() => {
+                              setSelectedCohortForStudent(cohort);
+                              setShowAddStudentModal(true);
+                            }}
+                            className="py-1.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            Add Student
+                          </button>
+                        </div>
+                      </div>
                     </div>
+                  ))}
+                </div>
+              </section>
+
+            </div>
+          )}
+
+          {/* VIEW 3: DUMMY RESULTS INFOGRAPHIC */}
+          {activeMenu === 'Results' && (
+            <div className="flex flex-col gap-8">
+              
+              {/* Infographic Header */}
+              <div className="bg-gradient-to-r from-[#5e328c] via-[#7d48b1] to-[#e54e73] rounded-3xl p-8 shadow-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full text-pink-100 inline-block mb-3">
+                    Visual Analytics Infographic
+                  </span>
+                  <h2 className="font-display font-extrabold text-3xl text-white tracking-wide">
+                    Assessment Performance Infographic
+                  </h2>
+                  <p className="text-xs text-purple-100 font-medium max-w-xl mt-1 leading-relaxed">
+                    Real-time aggregated results across Multiple Choice, Short Answer, and Embedded question types.
+                  </p>
+                </div>
+
+                <button 
+                  onClick={() => showToast("Infographic report downloaded successfully!")}
+                  className="py-3 px-6 bg-white hover:bg-pink-50 text-[#5e328c] font-extrabold rounded-2xl text-xs transition-all shadow-lg flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  <Download className="w-4 h-4 text-[#e54e73]" />
+                  Export Infographic Report
+                </button>
+              </div>
+
+              {/* Grid 1: Question Type Breakdown & Topic Mastery */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* Infographic Card 1: Question Type Accuracy Breakdown (6 cols) */}
+                <div className="lg:col-span-6 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2 flex items-center gap-2">
+                      <PieChart className="w-5 h-5 text-[#e54e73]" />
+                      Question Format Accuracy Rates
+                    </h3>
+                    <p className="text-xs text-gray-400 font-medium mb-6">Comparative student accuracy across MCQ, Short Answer, and Embedded Questions.</p>
                   </div>
 
-                  {/* Chart Legend */}
-                  <div className="flex flex-col gap-2 shrink-0">
-                    {dist.categories.map((cat, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }}></span>
-                        <span>{cat.name.split(' ')[0]}</span>
-                        <span className="text-gray-400 font-normal">({cat.count} attempts / {cat.percentage}%)</span>
+                  <div className="flex flex-col gap-6">
+                    {infographicData.questionTypeAccuracy.map((item, idx) => (
+                      <div key={idx} className="flex flex-col gap-2">
+                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
+                          <span className="flex items-center gap-2">
+                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
+                            {item.type}
+                          </span>
+                          <span className="font-black text-purple-950">{item.accuracy}% Accuracy</span>
+                        </div>
+                        <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-1000 ease-out"
+                            style={{ width: `${item.accuracy}%`, backgroundColor: item.color }}
+                          ></div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
 
-            </section>
+                {/* Infographic Card 2: Skill & Topic Mastery (6 cols) */}
+                <div className="lg:col-span-6 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-purple-600" />
+                      Topic & Skill Benchmark Index
+                    </h3>
+                    <p className="text-xs text-gray-400 font-medium mb-6">Subject area performance scores aggregated from all test submissions.</p>
+                  </div>
 
-            {/* Widget 2: Student Results List (7 Cols) */}
-            <section className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6 self-stretch">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 className="font-display font-extrabold text-xl text-gray-800">Student Results</h2>
-                
-                {/* Search field */}
-                <div className="relative w-full sm:w-60">
-                  <input 
-                    type="text" 
-                    placeholder="Search Student.." 
-                    value={searchStudent}
-                    onChange={(e) => { setSearchStudent(e.target.value); setStudentPage(1); }}
-                    className="w-full py-2 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
-                  />
-                  <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
-                </div>
-              </div>
-
-              {/* Student Results Table */}
-              <div className="overflow-x-auto flex-1">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
-                      <th className="py-3 px-4 rounded-l-xl">Student Name</th>
-                      <th className="py-3 px-4 text-center">Status</th>
-                      <th className="py-3 px-4 text-center">Score</th>
-                      <th className="py-3 px-4 text-center">Percentage</th>
-                      <th className="py-3 px-4 text-center rounded-r-xl">Completed On</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
-                    {paginatedStudents.map(student => (
-                      <tr key={student.id} className="hover:bg-gray-50/70 transition-colors">
-                        <td className="py-3 px-4">
-                          <div className="flex flex-col">
-                            <span className="font-bold text-gray-800">{student.name}</span>
-                            <span className="text-[10px] text-gray-400 font-normal">{student.testTitle}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-block py-1 px-3 rounded-full font-bold text-[9px] ${
-                            student.status === 'Completed' ? 'bg-green-50 text-green-700' :
-                            student.status === 'In Progress' ? 'bg-blue-50 text-blue-700' :
-                            'bg-red-50 text-red-700'
-                          }`}>
-                            {student.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-center font-bold text-purple-700">
-                          {student.status === 'Completed' ? `${student.score} / ${student.totalQs}` : '-'}
-                        </td>
-                        <td className="py-3 px-4 text-center font-bold text-gray-800">
-                          {student.status === 'Completed' ? `${student.percentage}%` : '-'}
-                        </td>
-                        <td className="py-3 px-4 text-center text-gray-400 font-semibold">{student.completedOn}</td>
-                      </tr>
+                  <div className="grid grid-cols-2 gap-4">
+                    {infographicData.topicMastery.map((topic, idx) => (
+                      <div key={idx} className="bg-purple-50/60 p-5 rounded-2xl border border-purple-100 flex flex-col justify-between">
+                        <span className="text-xs font-bold text-gray-700 mb-2">{topic.topic}</span>
+                        <div className="flex items-baseline gap-2">
+                          <span className="font-display font-extrabold text-2xl text-purple-950">{topic.score}%</span>
+                          <span className="text-[10px] text-green-600 font-bold">Passing Grade</span>
+                        </div>
+                      </div>
                     ))}
-                    {filteredStudents.length === 0 && (
-                      <tr>
-                        <td colSpan="5" className="text-center py-8 text-gray-400">No results found matching query.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Pagination Controls */}
-              {filteredStudents.length > 0 && (
-                <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
-                  <span className="text-[10px] text-gray-400 font-semibold select-none">
-                    Showing {(studentPage - 1) * studentsPerPage + 1} to {Math.min(studentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} students
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      disabled={studentPage === 1}
-                      onClick={() => setStudentPage(prev => prev - 1)}
-                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                    >
-                      &lt;
-                    </button>
-                    {[...Array(totalStudentPages)].map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setStudentPage(i + 1)}
-                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                          studentPage === i + 1 
-                            ? 'bg-purple-900 text-white shadow-xs' 
-                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
-                        }`}
-                      >
-                        {i + 1}
-                      </button>
-                    ))}
-                    <button 
-                      disabled={studentPage === totalStudentPages}
-                      onClick={() => setStudentPage(prev => prev + 1)}
-                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                    >
-                      &gt;
-                    </button>
                   </div>
                 </div>
-              )}
-            </section>
 
-          </div>
+              </div>
+
+              {/* Grid 2: Leaderboard & Cohort Distribution */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                
+                {/* Leaderboard Table (7 cols) */}
+                <div className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col">
+                  <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-yellow-500" />
+                    Top Performing Student Leaderboard
+                  </h3>
+                  <p className="text-xs text-gray-400 font-medium mb-6">Highest scoring students based on overall assessment performance.</p>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                          <th className="py-3 px-4 rounded-l-xl">Rank</th>
+                          <th className="py-3 px-4">Student Name</th>
+                          <th className="py-3 px-4">Cohort Batch</th>
+                          <th className="py-3 px-4 text-center rounded-r-xl">Score Rate</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50 text-xs text-gray-700 font-semibold">
+                        {infographicData.leaderboard.map((item) => (
+                          <tr key={item.rank} className="hover:bg-purple-50/50 transition-colors">
+                            <td className="py-3.5 px-4 font-black">
+                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${
+                                item.rank === 1 ? 'bg-yellow-500' : item.rank === 2 ? 'bg-gray-400' : 'bg-amber-600'
+                              }`}>
+                                #{item.rank}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-gray-900">{item.name}</td>
+                            <td className="py-3.5 px-4 text-gray-400 font-normal">{item.cohort}</td>
+                            <td className="py-3.5 px-4 text-center font-extrabold text-green-600">{item.score}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Pass/Fail Infographic Badge Card (5 cols) */}
+                <div className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2">Completion Metrics</h3>
+                    <p className="text-xs text-gray-400 font-medium mb-6">Overall pass rate & average attempt duration.</p>
+                  </div>
+
+                  <div className="flex flex-col gap-6">
+                    <div className="bg-green-50 p-6 rounded-2xl border border-green-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-extrabold text-green-700 uppercase tracking-wider block">Pass Rate</span>
+                        <span className="font-display font-extrabold text-3xl text-green-900">87.5%</span>
+                      </div>
+                      <Check className="w-8 h-8 text-green-600" />
+                    </div>
+
+                    <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider block">Avg Duration</span>
+                        <span className="font-display font-extrabold text-3xl text-purple-950">18.4 mins</span>
+                      </div>
+                      <Clock className="w-8 h-8 text-purple-600" />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
 
         </div>
 
       </main>
 
-      {/* 3. CREATE / EDIT TEST DIALOG MODAL */}
+      {/* 3. CREATE / EDIT TEST DIALOG MODAL (WITH MCQ, SHORT ANS, EMBEDDED QUESTION OPTIONS) */}
       {showFormModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto py-10 animate-fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl border border-gray-100 flex flex-col max-h-[85vh] overflow-hidden">
+          <div className="bg-white rounded-[2rem] w-full max-w-3xl shadow-2xl border border-gray-100 flex flex-col max-h-[85vh] overflow-hidden">
             
             {/* Modal Header */}
             <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
@@ -650,7 +1071,7 @@ const CreatorDashboard = () => {
                   <input 
                     type="text" 
                     required
-                    placeholder="e.g. React Hooks In-Depth" 
+                    placeholder="e.g. Full-Stack Engineering Assessment" 
                     value={testTitle}
                     onChange={(e) => setTestTitle(e.target.value)}
                     className="py-2.5 px-4 rounded-xl border border-gray-250 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-700 placeholder-gray-400"
@@ -683,19 +1104,41 @@ const CreatorDashboard = () => {
                 />
               </div>
 
-              {/* Question Editor Section */}
+              {/* QUESTION TYPE BUILDER SECTION */}
               <div className="border-t border-gray-100 pt-6 flex flex-col gap-4">
                 <div className="flex justify-between items-center">
-                  <h4 className="font-display font-extrabold text-sm text-gray-800 uppercase tracking-wide">Questions Setup</h4>
-                  <button 
-                    type="button" 
-                    onClick={handleAddQuestion}
-                    className="py-1.5 px-3 bg-purple-50 hover:bg-purple-100 border border-purple-100 text-purple-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Question
-                  </button>
+                  <div>
+                    <h4 className="font-display font-extrabold text-sm text-gray-800 uppercase tracking-wide">Questions & Types Setup</h4>
+                    <p className="text-[10px] text-gray-400">Choose between MCQ, Short Answer, or Embedded Code/Media question types.</p>
+                  </div>
+
+                  {/* Add Question Button Group */}
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      type="button" 
+                      onClick={() => handleAddQuestion('mcq')}
+                      className="py-1.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> MCQ
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleAddQuestion('short_ans')}
+                      className="py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Short Ans
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => handleAddQuestion('embedded')}
+                      className="py-1.5 px-3 bg-pink-50 hover:bg-pink-100 text-[#e54e73] text-xs font-bold rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Embedded
+                    </button>
+                  </div>
                 </div>
 
+                {/* Question Items Editor List */}
                 <div className="flex flex-col gap-6">
                   {testQuestions.map((q, qIdx) => (
                     <div key={qIdx} className="bg-gray-50 border border-gray-150 p-5 rounded-2xl flex flex-col gap-4 relative">
@@ -711,52 +1154,151 @@ const CreatorDashboard = () => {
                         </button>
                       )}
 
-                      <div className="flex items-center gap-2">
+                      {/* Top Header: Question Index + Question Type Selector */}
+                      <div className="flex items-center gap-3">
                         <span className="w-6 h-6 rounded-full bg-purple-200 text-purple-800 font-extrabold text-xs flex items-center justify-center shrink-0">
                           {qIdx + 1}
                         </span>
+
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase">Question Format:</label>
+                          <select 
+                            value={q.type}
+                            onChange={(e) => handleQuestionChange(qIdx, 'type', e.target.value)}
+                            className="py-1 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-purple-900 focus:outline-none"
+                          >
+                            <option value="mcq">Multiple Choice (MCQ)</option>
+                            <option value="short_ans">Short Answer</option>
+                            <option value="embedded">Embedded Question Type</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Question Stem Field */}
+                      <div className="flex flex-col gap-1">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">Question Stem Prompt:</label>
                         <input 
                           type="text" 
                           required
-                          placeholder="Type Question stem..." 
+                          placeholder="Type Question prompt..." 
                           value={q.text}
-                          onChange={(e) => handleQuestionTextChange(qIdx, e.target.value)}
-                          className="w-full py-1.5 bg-transparent border-b border-gray-250 focus:border-purple-600 focus:outline-none text-sm font-semibold text-gray-800 placeholder-gray-400"
+                          onChange={(e) => handleQuestionChange(qIdx, 'text', e.target.value)}
+                          className="w-full py-2 px-3 bg-white border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none text-xs font-semibold text-gray-800 placeholder-gray-400"
                         />
                       </div>
 
-                      {/* Options input grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                        {q.options.map((opt, optIdx) => (
-                          <div key={optIdx} className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-gray-400 shrink-0">Option {String.fromCharCode(65 + optIdx)}</span>
-                            <input 
-                              type="text" 
-                              required
-                              placeholder={`Option text...`} 
-                              value={opt}
-                              onChange={(e) => handleOptionChange(qIdx, optIdx, e.target.value)}
-                              className="w-full py-1.5 px-3 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-gray-700"
+                      {/* CONDITIONAL QUESTION TYPE INPUTS */}
+                      
+                      {/* TYPE 1: MCQ */}
+                      {q.type === 'mcq' && (
+                        <div className="flex flex-col gap-3 mt-1">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {(q.options || ['', '', '', '']).map((opt, optIdx) => (
+                              <div key={optIdx} className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-gray-400 shrink-0">Option {String.fromCharCode(65 + optIdx)}</span>
+                                <input 
+                                  type="text" 
+                                  required
+                                  placeholder={`Choice text...`} 
+                                  value={opt}
+                                  onChange={(e) => handleOptionChange(qIdx, optIdx, e.target.value)}
+                                  className="w-full py-1.5 px-3 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-gray-700"
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-3 mt-1">
+                            <span className="text-[10px] font-bold text-gray-400">Correct Choice:</span>
+                            <select 
+                              value={q.correctAnswer}
+                              onChange={(e) => handleQuestionChange(qIdx, 'correctAnswer', parseInt(e.target.value))}
+                              className="py-1 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700"
+                            >
+                              {(q.options || ['', '', '', '']).map((_, optIdx) => (
+                                <option key={optIdx} value={optIdx}>
+                                  Option {String.fromCharCode(65 + optIdx)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* TYPE 2: SHORT ANSWER */}
+                      {q.type === 'short_ans' && (
+                        <div className="flex flex-col gap-3 mt-1">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase">Model / Sample Answer Key:</label>
+                            <textarea 
+                              rows="2"
+                              placeholder="Describe expected correct points or sample answer..."
+                              value={q.sampleAnswer || ''}
+                              onChange={(e) => handleQuestionChange(qIdx, 'sampleAnswer', e.target.value)}
+                              className="w-full py-2 px-3 bg-white border border-gray-200 rounded-xl text-xs font-medium text-gray-700 focus:outline-none"
                             />
                           </div>
-                        ))}
-                      </div>
 
-                      {/* Correct Choice Setter */}
-                      <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] font-bold text-gray-400">Select Correct Answer:</span>
-                        <select 
-                          value={q.correctAnswer}
-                          onChange={(e) => handleCorrectAnswerChange(qIdx, e.target.value)}
-                          className="py-1.5 px-4 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 focus:outline-none"
-                        >
-                          {q.options.map((_, optIdx) => (
-                            <option key={optIdx} value={optIdx}>
-                              Option {String.fromCharCode(65 + optIdx)}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase">Key Keywords (comma-separated):</label>
+                            <input 
+                              type="text"
+                              placeholder="e.g. state, re-render, Virtual DOM"
+                              value={q.keywords || ''}
+                              onChange={(e) => handleQuestionChange(qIdx, 'keywords', e.target.value)}
+                              className="w-full py-1.5 px-3 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-700"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* TYPE 3: EMBEDDED QUESTION */}
+                      {q.type === 'embedded' && (
+                        <div className="flex flex-col gap-3 mt-1 border-t border-gray-200 pt-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase">Embedded Code Snippet:</label>
+                            <textarea 
+                              rows="3"
+                              placeholder="// Code block to display to student..."
+                              value={q.codeSnippet || ''}
+                              onChange={(e) => handleQuestionChange(qIdx, 'codeSnippet', e.target.value)}
+                              className="w-full py-2 px-3 bg-gray-900 border border-gray-800 text-purple-200 rounded-xl text-xs font-mono"
+                            />
+                          </div>
+
+                          {/* Multiple Choice Options for Embedded Question */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                            {(q.options || ['', '', '', '']).map((opt, optIdx) => (
+                              <div key={optIdx} className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-gray-400 shrink-0">Option {String.fromCharCode(65 + optIdx)}</span>
+                                <input 
+                                  type="text" 
+                                  required
+                                  placeholder={`Choice for embedded code...`} 
+                                  value={opt}
+                                  onChange={(e) => handleOptionChange(qIdx, optIdx, e.target.value)}
+                                  className="w-full py-1.5 px-3 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none"
+                                />
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-bold text-gray-400">Correct Choice:</span>
+                            <select 
+                              value={q.correctAnswer}
+                              onChange={(e) => handleQuestionChange(qIdx, 'correctAnswer', parseInt(e.target.value))}
+                              className="py-1 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700"
+                            >
+                              {(q.options || ['', '', '', '']).map((_, optIdx) => (
+                                <option key={optIdx} value={optIdx}>
+                                  Option {String.fromCharCode(65 + optIdx)}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      )}
 
                     </div>
                   ))}
@@ -779,7 +1321,7 @@ const CreatorDashboard = () => {
                 onClick={handleSaveTest}
                 className="py-2.5 px-6 bg-[#e54e73] hover:bg-[#d03b60] text-white font-bold rounded-xl text-xs shadow-md shadow-pink-100 transition-all cursor-pointer"
               >
-                {isEditing ? 'Save Changes' : 'Create Test'}
+                {isEditing ? 'Save Changes' : 'Create Assessment'}
               </button>
             </div>
 
@@ -790,65 +1332,178 @@ const CreatorDashboard = () => {
       {/* 4. PREVIEW TEST MODAL */}
       {showPreviewModal && previewTest && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white rounded-[2rem] w-full max-w-xl shadow-2xl border border-gray-100 flex flex-col max-h-[80vh]">
+          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl border border-gray-100 flex flex-col max-h-[85vh]">
             
             <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center shrink-0">
               <div>
                 <h3 className="font-display font-extrabold text-lg text-gray-800">{previewTest.title}</h3>
-                <p className="text-[10px] text-gray-400 font-semibold uppercase flex items-center gap-1.5 mt-0.5"><Clock className="w-3.5 h-3.5 text-purple-600" /> {previewTest.duration} mins duration</p>
+                <p className="text-[10px] text-gray-400 font-semibold uppercase flex items-center gap-1.5 mt-0.5"><Clock className="w-3.5 h-3.5 text-purple-600" /> {previewTest.duration} mins duration • {previewTest.questions?.length} Questions</p>
               </div>
               <button 
                 onClick={() => setShowPreviewModal(false)}
-                className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all cursor-pointer"
+                className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-8 py-6 flex flex-col gap-6">
-              <div className="bg-purple-50/50 p-4 rounded-xl border border-purple-100/50 text-xs text-purple-800 font-medium">
-                💡 <span className="font-bold">Description: </span> {previewTest.description || 'No description provided.'}
-              </div>
-              
-              <div className="flex flex-col gap-5">
-                {previewTest.questions.map((q, idx) => (
-                  <div key={q.id || idx} className="border-b border-gray-100 pb-4 last:border-b-0">
-                    <h4 className="font-bold text-xs text-gray-800 mb-2 flex items-start gap-1.5">
-                      <span className="text-purple-600 font-display font-extrabold">{idx + 1}.</span>
-                      <span>{q.text}</span>
-                    </h4>
-                    <div className="grid grid-cols-2 gap-2 pl-4">
-                      {q.options.map((opt, optIdx) => {
-                        const isCorrect = optIdx === q.correctAnswer;
-                        return (
-                          <div 
-                            key={optIdx} 
-                            className={`p-2 rounded-lg text-[10px] font-semibold border ${
-                              isCorrect 
-                                ? 'bg-green-50 border-green-200 text-green-700 flex items-center justify-between' 
-                                : 'bg-gray-50 border-gray-200 text-gray-600'
-                            }`}
-                          >
-                            <span>{String.fromCharCode(65 + optIdx)}. {opt}</span>
-                            {isCorrect && <Check className="w-3 h-3 text-green-600 shrink-0" />}
-                          </div>
-                        );
-                      })}
-                    </div>
+            <div className="p-8 overflow-y-auto flex flex-col gap-6">
+              {previewTest.questions?.map((q, idx) => (
+                <div key={idx} className="p-4 bg-gray-50 border border-gray-150 rounded-2xl flex flex-col gap-3">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-xs text-purple-700">Q{idx + 1}. {q.text}</span>
+                    <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                      {q.type === 'mcq' ? 'MCQ' : q.type === 'short_ans' ? 'Short Answer' : 'Embedded Question'}
+                    </span>
                   </div>
-                ))}
-              </div>
+
+                  {q.type === 'embedded' && q.codeSnippet && (
+                    <pre className="bg-gray-900 text-purple-200 p-3 rounded-xl text-[10px] font-mono">
+                      <code>{q.codeSnippet}</code>
+                    </pre>
+                  )}
+
+                  {q.type === 'short_ans' ? (
+                    <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs italic text-gray-500">
+                      Model Key: {q.sampleAnswer || 'Sample short answer explanation.'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {q.options?.map((opt, oIdx) => (
+                        <div key={oIdx} className={`p-2 rounded-lg text-xs font-semibold border ${
+                          q.correctAnswer === oIdx ? 'bg-green-100 border-green-300 text-green-800 font-bold' : 'bg-white border-gray-200 text-gray-600'
+                        }`}>
+                          {String.fromCharCode(65 + oIdx)}. {opt}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
 
-            <div className="px-8 py-4 border-t border-gray-100 bg-gray-50 flex justify-end shrink-0">
+            <div className="px-8 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
               <button 
                 onClick={() => setShowPreviewModal(false)}
-                className="py-2 px-5 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg text-xs transition-colors cursor-pointer"
+                className="py-2 px-5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700"
               >
                 Close Preview
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* 5. CREATE COHORT MODAL */}
+      {showCohortModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100">
+            <h3 className="font-display font-extrabold text-xl text-gray-800 mb-2 flex items-center gap-2">
+              <FolderPlus className="w-6 h-6 text-[#e54e73]" />
+              Create New Cohort
+            </h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6">
+              Group students into batches to track aggregate progress and assign custom test packages.
+            </p>
+
+            <form onSubmit={handleSaveCohort} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Cohort Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. React Mastery - Fall Batch"
+                  value={newCohortName}
+                  onChange={(e) => setNewCohortName(e.target.value)}
+                  className="py-2.5 px-4 rounded-xl border border-gray-250 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Description</label>
+                <textarea 
+                  rows="3"
+                  placeholder="Describe the cohort scope and goals..."
+                  value={newCohortDesc}
+                  onChange={(e) => setNewCohortDesc(e.target.value)}
+                  className="py-2.5 px-4 rounded-xl border border-gray-250 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 resize-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowCohortModal(false)}
+                  className="py-2.5 px-5 bg-gray-100 text-gray-700 font-bold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="py-2.5 px-6 bg-[#e54e73] hover:bg-[#d03b60] text-white font-bold rounded-xl text-xs shadow-md shadow-pink-100"
+                >
+                  Create Batch
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. ADD STUDENT TO COHORT MODAL */}
+      {showAddStudentModal && selectedCohortForStudent && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100">
+            <h3 className="font-display font-extrabold text-xl text-gray-800 mb-2 flex items-center gap-2">
+              <UserPlus className="w-6 h-6 text-purple-700" />
+              Enroll Student to {selectedCohortForStudent.name}
+            </h3>
+            <p className="text-xs text-gray-500 leading-relaxed mb-6">
+              Add a new member to this cohort batch to assign test tracking.
+            </p>
+
+            <form onSubmit={handleAddStudentSubmit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Student Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Divya Sharma"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  className="py-2.5 px-4 rounded-xl border border-gray-250 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Email Address</label>
+                <input 
+                  type="email" 
+                  required
+                  placeholder="divya@example.com"
+                  value={newStudentEmail}
+                  onChange={(e) => setNewStudentEmail(e.target.value)}
+                  className="py-2.5 px-4 rounded-xl border border-gray-250 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddStudentModal(false)}
+                  className="py-2.5 px-5 bg-gray-100 text-gray-700 font-bold rounded-xl text-xs"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="py-2.5 px-6 bg-purple-900 hover:bg-purple-950 text-white font-bold rounded-xl text-xs shadow-md shadow-purple-100"
+                >
+                  Enroll Student
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
