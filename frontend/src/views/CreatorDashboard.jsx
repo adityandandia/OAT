@@ -5,7 +5,7 @@ import {
   Bell, ChevronDown, List, LayoutDashboard, FileSpreadsheet, Users, 
   Settings as SettingsIcon, LogOut, Eye, Edit2, Trash2, Search, Plus, 
   Trash, X, Clock, HelpCircle, Check, FileText, Code, Image as ImageIcon,
-  BarChart3, PieChart, Sparkles, UserPlus, FolderPlus, Download, Award, Target
+  BarChart3, PieChart, Sparkles, UserPlus, FolderPlus, Download, Award, Target, ArrowRight, ShieldCheck 
 } from 'lucide-react';
 
 const CreatorDashboard = () => {
@@ -28,7 +28,7 @@ const CreatorDashboard = () => {
   const navigate = useNavigate();
 
   // Navigation menu state
-  const [activeMenu, setActiveMenu] = useState('Course Creator');
+  const [activeMenu, setActiveMenu] = useState('Dashboard');
 
   // Search filter for Student Results & Cohorts
   const [searchStudent, setSearchStudent] = useState('');
@@ -254,7 +254,9 @@ const CreatorDashboard = () => {
   const filteredStudents = studentResults.filter(student => 
     student.name.toLowerCase().includes(searchStudent.toLowerCase()) ||
     student.status.toLowerCase().includes(searchStudent.toLowerCase()) ||
-    student.testTitle.toLowerCase().includes(searchStudent.toLowerCase())
+    student.testTitle.toLowerCase().includes(searchStudent.toLowerCase()) ||
+    student.cohort.toLowerCase().includes(searchStudent.toLowerCase()) ||
+    (student.timeTaken || '').toLowerCase().includes(searchStudent.toLowerCase())
   );
 
   // Search filtered cohorts list
@@ -262,6 +264,17 @@ const CreatorDashboard = () => {
     c.name.toLowerCase().includes(searchCohort.toLowerCase()) ||
     c.description.toLowerCase().includes(searchCohort.toLowerCase())
   );
+
+  const attemptsCount = studentResults.length;
+  const passedCount = studentResults.filter(r => r.percentage >= 50 && r.status !== 'Not Attempted').length;
+  const failedCount = studentResults.filter(r => r.percentage > 0 && r.percentage < 50).length;
+  const averageScore = studentResults.length
+    ? Math.round(studentResults.reduce((sum, item) => sum + (item.percentage || 0), 0) / studentResults.length)
+    : 0;
+
+  const completedCount = studentResults.filter(r => r.status === 'Completed').length;
+  const inProgressCount = studentResults.filter(r => r.status === 'In Progress').length;
+  const notAttemptedCount = studentResults.filter(r => r.status === 'Not Attempted').length;
 
   // Paginated lists
   const totalTestPages = Math.ceil(tests.length / testsPerPage);
@@ -306,19 +319,20 @@ const CreatorDashboard = () => {
                 <span className="text-[5px] font-bold text-gray-500 ml-0.5 select-none -mt-0.5">TM</span>
               </div>
             </div>
-            {/* OneTest Text */}
-            <span className="font-display font-extrabold text-2xl text-gray-800 tracking-tight leading-none mt-1">OneTest</span>
+            {/* CourseHub Text */}
+            <span className="font-display font-extrabold text-2xl text-gray-800 tracking-tight leading-none mt-1">CourseHub</span>
           </div>
 
           {/* Navigation Links */}
           <nav className="flex flex-col gap-1.5 mt-6">
             {[
-              { name: 'Course Creator', icon: List },
               { name: 'Dashboard', icon: LayoutDashboard },
               { name: 'Create Test', icon: Plus, action: handleOpenCreate },
               { name: 'All Tests', icon: FileText },
               { name: 'Cohort', icon: Users },
               { name: 'Results', icon: FileSpreadsheet },
+              { name: 'Courses', icon: ShieldCheck, action: () => navigate('/creator/course') },
+              { name: 'Courses', icon: ShieldCheck },
               { name: 'Settings', icon: SettingsIcon }
             ].map((item) => {
               const Icon = item.icon;
@@ -368,17 +382,6 @@ const CreatorDashboard = () => {
           </div>
         </div>
 
-        {/* Bottom Logout */}
-        <div className="pt-4 border-t border-gray-100">
-          <button 
-            onClick={handleLogout}
-            className="flex items-center gap-3 w-full py-3 px-4 rounded-2xl hover:bg-red-50 text-gray-700 hover:text-red-600 transition-all font-semibold cursor-pointer group"
-          >
-            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
-            <span>Logout</span>
-          </button>
-        </div>
-
       </aside>
 
       {/* 2. MAIN HEADER & CANVAS */}
@@ -412,631 +415,485 @@ const CreatorDashboard = () => {
         {/* Content canvas switcher */}
         <div className="flex-1 p-10 flex flex-col gap-8">
           
-          {/* VIEW 1: COURSE CREATOR / MAIN DASHBOARD / ALL TESTS */}
-          {(activeMenu === 'Course Creator' || activeMenu === 'Dashboard' || activeMenu === 'All Tests') && (
-            <>
-              {/* Section 1: Manage Tests Table */}
-              <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="font-display font-extrabold text-xl text-gray-800">Manage Assessments</h2>
-                    <p className="text-xs text-gray-400 font-medium mt-0.5">Create and configure tests with MCQ, Short Answer, and Embedded question types.</p>
-                  </div>
-                  <button 
-                    onClick={handleOpenCreate}
-                    className="py-2.5 px-6 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2 cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create New Test
-                  </button>
+          {/* VIEW 1: MAIN DASHBOARD */}
+          {activeMenu === 'Dashboard' && (
+            <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-gray-800">Overview & Student Results</h2>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Track cohort performance, test completion, and student progress.</p>
                 </div>
-
-                {/* Tests list table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
-                        <th className="py-3.5 px-4 rounded-l-xl">Test Title</th>
-                        <th className="py-3.5 px-4 w-1/3">Description</th>
-                        <th className="py-3.5 px-4 text-center">Total Questions</th>
-                        <th className="py-3.5 px-4 text-center">Formats Included</th>
-                        <th className="py-3.5 px-4 text-center">Duration</th>
-                        <th className="py-3.5 px-4 text-center rounded-r-xl w-32">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
-                      {paginatedTests.map(test => (
-                        <tr key={test.id} className="hover:bg-gray-50/70 transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-gray-800">{test.title}</td>
-                          <td className="py-3.5 px-4 text-gray-400 leading-relaxed font-normal">{test.description}</td>
-                          <td className="py-3.5 px-4 text-center font-bold">{test.totalQuestions}</td>
-                          <td className="py-3.5 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1">
-                              <span className="text-[9px] font-extrabold bg-purple-100 text-purple-800 px-2 py-0.5 rounded-md">MCQ</span>
-                              <span className="text-[9px] font-extrabold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">Short</span>
-                              <span className="text-[9px] font-extrabold bg-pink-100 text-pink-800 px-2 py-0.5 rounded-md">Embed</span>
-                            </div>
-                          </td>
-                          <td className="py-3.5 px-4 text-center font-bold text-[#e54e73]">{test.duration} mins</td>
-                          <td className="py-3.5 px-4">
-                            <div className="flex justify-center items-center gap-3">
-                              <button 
-                                onClick={() => handleOpenPreview(test)}
-                                title="Preview Test"
-                                className="p-1.5 hover:bg-purple-50 text-purple-600 hover:text-purple-800 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleOpenEdit(test)}
-                                title="Edit Test"
-                                className="p-1.5 hover:bg-blue-50 text-blue-600 hover:text-blue-800 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => {
-                                  if (confirm(`Delete test "${test.title}"?`)) deleteTest(test.id);
-                                }}
-                                title="Delete Test"
-                                className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors cursor-pointer"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                      {tests.length === 0 && (
-                        <tr>
-                          <td colSpan="6" className="text-center py-8 text-gray-400">No tests available. Click "Create New Test" to get started.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                <div className="relative w-full md:w-72">
+                  <input
+                    type="text"
+                    placeholder="Search student..."
+                    value={searchStudent}
+                    onChange={(e) => { setSearchStudent(e.target.value); setStudentPage(1); }}
+                    className="w-full py-2.5 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
+                  />
+                  <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
                 </div>
-
-                {/* Pagination Controls */}
-                {tests.length > 0 && (
-                  <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
-                    <span className="text-[10px] text-gray-400 font-semibold select-none">
-                      Showing {(testPage - 1) * testsPerPage + 1} to {Math.min(testPage * testsPerPage, tests.length)} of {tests.length} tests
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button 
-                        disabled={testPage === 1}
-                        onClick={() => setTestPage(prev => prev - 1)}
-                        className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                      >
-                        &lt;
-                      </button>
-                      {[...Array(totalTestPages)].map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setTestPage(i + 1)}
-                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                            testPage === i + 1 
-                              ? 'bg-purple-900 text-white shadow-xs' 
-                              : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                      <button 
-                        disabled={testPage === totalTestPages}
-                        onClick={() => setTestPage(prev => prev + 1)}
-                        className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                      >
-                        &gt;
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </section>
-
-              {/* Section 2: Two Column Dashboard Widgets */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
-                {/* Widget 1: Test Overview & Donut Chart (5 Cols) */}
-                <section className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-4">
-                  <div>
-                    <h2 className="font-display font-extrabold text-xl text-gray-800 mb-4">Test overview</h2>
-                    
-                    {/* Stats badge grid */}
-                    <div className="grid grid-cols-4 gap-3 mb-4">
-                      <div className="bg-purple-50 p-2 px-3 rounded-xl border border-purple-100 flex flex-col items-center justify-center">
-                        <span className="text-lg font-black text-purple-700">{dist.total}</span>
-                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Total Students</span>
-                      </div>
-                      <div className="bg-green-50 p-2 px-3 rounded-xl border border-green-100 flex flex-col items-center justify-center">
-                        <span className="text-lg font-black text-green-700">{dist.total - 4}</span>
-                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Completed</span>
-                      </div>
-                      <div className="bg-blue-50 p-2 px-3 rounded-xl border border-blue-100 flex flex-col items-center justify-center">
-                        <span className="text-lg font-black text-blue-700">4</span>
-                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">In Progress</span>
-                      </div>
-                      <div className="bg-red-50 p-2 px-3 rounded-xl border border-red-100 flex flex-col items-center justify-center">
-                        <span className="text-lg font-black text-red-700">0</span>
-                        <span className="text-[8px] font-bold text-gray-400 text-center uppercase tracking-wide leading-none mt-1">Not Attempted</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Performance Pie/Donut Chart Area */}
-                  <div className="flex flex-col gap-4 items-center border-t border-gray-100 pt-4">
-                    <h3 className="font-display font-bold text-xs text-gray-400 uppercase tracking-widest self-start">Performance Summary</h3>
-                    
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-8 w-full">
-                      <div className="relative w-40 h-40 shrink-0">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 120 120">
-                          <circle 
-                            cx="60" 
-                            cy="60" 
-                            r={radius} 
-                            fill="transparent" 
-                            stroke="#f3f4f6" 
-                            strokeWidth={strokeWidth} 
-                          />
-                          {dist.categories.map((cat, idx) => {
-                            const percent = (cat.count / dist.total) * 100;
-                            const strokeDash = (percent / 100) * circumference;
-                            const dashOffset = circumference - (accumulatedPercent / 100) * circumference;
-                            accumulatedPercent += percent;
-
-                            return (
-                              <circle
-                                key={idx}
-                                cx="60"
-                                cy="60"
-                                r={radius}
-                                fill="transparent"
-                                stroke={cat.color}
-                                strokeWidth={strokeWidth}
-                                strokeDasharray={`${strokeDash} ${circumference - strokeDash}`}
-                                strokeDashoffset={dashOffset}
-                                strokeLinecap="round"
-                                className="transition-all duration-1000 ease-out hover:opacity-85"
-                              />
-                            );
-                          })}
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none pointer-events-none">
-                          <span className="font-display font-extrabold text-2xl text-gray-800 leading-none">{dist.total}</span>
-                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">Students</span>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 shrink-0">
-                        {dist.categories.map((cat, idx) => (
-                          <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                            <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: cat.color }}></span>
-                            <span>{cat.name.split(' ')[0]}</span>
-                            <span className="text-gray-400 font-normal">({cat.count} / {cat.percentage}%)</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                </section>
-
-                {/* Widget 2: Employee Submissions List (7 Cols) */}
-                <section className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6 self-stretch">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                      <h2 className="font-display font-extrabold text-xl text-gray-800">Employee Submissions</h2>
-                      <p className="text-xs text-gray-400 font-medium mt-0.5">Track office employee performance, current test scores, and historical percentages.</p>
-                    </div>
-                    
-                    <div className="relative w-full sm:w-60">
-                      <input 
-                        type="text" 
-                        placeholder="Search Employee.." 
-                        value={searchStudent}
-                        onChange={(e) => { setSearchStudent(e.target.value); setStudentPage(1); }}
-                        className="w-full py-2 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
-                      />
-                      <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
-                    </div>
-                  </div>
-
-                  <div className="overflow-x-auto flex-1">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
-                          <th className="py-3 px-4 rounded-l-xl">Employee Name</th>
-                          <th className="py-3 px-4 text-center">Status</th>
-                          <th className="py-3 px-4 text-center">Score</th>
-                          <th className="py-3 px-4 text-center">Highest Percentage</th>
-                          <th className="py-3 px-4 text-center">Reattempts</th>
-                          <th className="py-3 px-4 text-center rounded-r-xl">Completed On</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
-                        {paginatedStudents.map((student, idx) => {
-                          const reattemptVal = student.reattempts !== undefined ? student.reattempts : (student.id === '1' ? 3 : student.id === '2' ? 2 : student.id === '3' ? 4 : student.id === '4' ? 1 : student.id === '5' ? 2 : (student.percentage > 0 ? 1 : 0));
-                          const highestVal = student.highestPercentage !== undefined ? student.highestPercentage : (student.percentage ? Math.min(100, student.percentage + 4) : 0);
-
-                          return (
-                            <tr key={student.id || idx} className="hover:bg-gray-50/70 transition-colors">
-                              <td className="py-3.5 px-4 whitespace-nowrap">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-gray-800">{student.name}</span>
-                                  <span className="text-[10px] text-purple-700 font-medium">{student.role || 'Employee'} • <span className="text-gray-400 font-normal">{student.testTitle}</span></span>
-                                </div>
-                              </td>
-                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                <span className={`inline-block py-1 px-3 rounded-full font-bold text-[9px] ${
-                                  student.status === 'Completed' ? 'bg-green-50 text-green-700' :
-                                  student.status === 'In Progress' ? 'bg-blue-50 text-blue-700' :
-                                  'bg-red-50 text-red-700'
-                                }`}>
-                                  {student.status}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 text-center font-bold text-purple-700 whitespace-nowrap">
-                                {student.status === 'Completed' ? `${student.score} / ${student.totalQs}` : '-'}
-                              </td>
-                              <td className="py-3.5 px-4 text-center font-extrabold text-green-700 whitespace-nowrap">
-                                {student.status === 'Completed' ? `${highestVal}%` : '-'}
-                              </td>
-                              <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                <span className="inline-block py-1 px-3.5 rounded-full font-extrabold text-[10px] bg-purple-50 text-purple-800 border border-purple-150">
-                                  {reattemptVal} {reattemptVal === 1 ? 'Reattempt' : 'Reattempts'}
-                                </span>
-                              </td>
-                              <td className="py-3.5 px-4 text-center text-gray-400 font-semibold whitespace-nowrap">{student.completedOn}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {filteredStudents.length > 0 && (
-                    <div className="flex justify-between items-center border-t border-gray-50 pt-4 mt-2">
-                      <span className="text-[10px] text-gray-400 font-semibold select-none">
-                        Showing {(studentPage - 1) * studentsPerPage + 1} to {Math.min(studentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} employees
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <button 
-                          disabled={studentPage === 1}
-                          onClick={() => setStudentPage(prev => prev - 1)}
-                          className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                        >
-                          &lt;
-                        </button>
-                        {[...Array(totalStudentPages)].map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setStudentPage(i + 1)}
-                            className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
-                              studentPage === i + 1 
-                                ? 'bg-purple-900 text-white shadow-xs' 
-                                : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
-                            }`}
-                          >
-                            {i + 1}
-                          </button>
-                        ))}
-                        <button 
-                          disabled={studentPage === totalStudentPages}
-                          onClick={() => setStudentPage(prev => prev + 1)}
-                          className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
-                        >
-                          &gt;
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </section>
-
               </div>
-            </>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="bg-purple-50 rounded-3xl p-6 border border-purple-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Total Students</p>
+                  <p className="mt-4 text-3xl font-extrabold text-purple-900">{studentResults.length}</p>
+                </div>
+                <div className="bg-green-50 rounded-3xl p-6 border border-green-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Completed</p>
+                  <p className="mt-4 text-3xl font-extrabold text-green-900">{completedCount}</p>
+                </div>
+                <div className="bg-yellow-50 rounded-3xl p-6 border border-yellow-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">In Progress</p>
+                  <p className="mt-4 text-3xl font-extrabold text-yellow-900">{inProgressCount}</p>
+                </div>
+                <div className="bg-red-50 rounded-3xl p-6 border border-red-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Not Attempted</p>
+                  <p className="mt-4 text-3xl font-extrabold text-red-900">{notAttemptedCount}</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                      <th className="py-3.5 px-4 rounded-l-xl">Student Name</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4">Score</th>
+                      <th className="py-3.5 px-4">Percentage</th>
+                      <th className="py-3.5 px-4">Completed On</th>
+                      <th className="py-3.5 px-4 rounded-r-xl">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
+                    {paginatedStudents.map((student, idx) => (
+                      <tr key={student.id || idx} className="hover:bg-gray-50/70 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-bold text-gray-800">{student.name}</span>
+                            <span className="text-[10px] text-gray-400">{student.testTitle} • {student.cohort}</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold ${
+                            student.status === 'Completed' ? 'bg-green-50 text-green-700' :
+                            student.status === 'In Progress' ? 'bg-yellow-50 text-yellow-700' :
+                            'bg-red-50 text-red-700'
+                          }`}>
+                            {student.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 font-bold text-purple-700">{student.status === 'Completed' ? `${student.score} / ${student.totalQs}` : '-'}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{student.percentage}%</td>
+                        <td className="py-3.5 px-4 text-gray-500">{student.completedOn}</td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2 justify-end">
+                            <button className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-800 transition-colors">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {filteredStudents.length > 0 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-50 pt-4 mt-2">
+                  <span className="text-[10px] text-gray-400 font-semibold select-none">
+                    Showing {(studentPage - 1) * studentsPerPage + 1} to {Math.min(studentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} students
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      disabled={studentPage === 1}
+                      onClick={() => setStudentPage(prev => prev - 1)}
+                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      &lt;
+                    </button>
+                    {[...Array(totalStudentPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setStudentPage(i + 1)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                          studentPage === i + 1 
+                            ? 'bg-purple-900 text-white shadow-xs' 
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button 
+                      disabled={studentPage === totalStudentPages}
+                      onClick={() => setStudentPage(prev => prev + 1)}
+                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
           )}
 
           {/* VIEW 2: COHORT MANAGEMENT */}
           {activeMenu === 'Cohort' && (
-            <div className="flex flex-col gap-8">
-              
-              {/* Cohort Stats Banner */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
-                    <Users className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Active Cohorts</span>
-                    <span className="font-display font-extrabold text-2xl text-purple-950">{cohorts.length} Batches</span>
-                  </div>
+            <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-gray-800">Cohort</h2>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Groups of students assigned to tests.</p>
                 </div>
-
-                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-pink-100 text-[#e54e73] flex items-center justify-center shrink-0">
-                    <UserPlus className="w-6 h-6" />
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="relative w-full md:w-72">
+                    <input
+                      type="text"
+                      placeholder="Search cohort..."
+                      value={searchCohort}
+                      onChange={(e) => setSearchCohort(e.target.value)}
+                      className="w-full py-2.5 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
+                    />
+                    <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
                   </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Students</span>
-                    <span className="font-display font-extrabold text-2xl text-purple-950">
-                      {cohorts.reduce((acc, c) => acc + c.totalStudents, 0)} Students
-                    </span>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-green-100 text-green-700 flex items-center justify-center shrink-0">
-                    <Target className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cohort Avg Grade</span>
-                    <span className="font-display font-extrabold text-2xl text-green-700">83.3%</span>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl shadow-md border border-purple-100/30 flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Completion Rate</span>
-                    <span className="font-display font-extrabold text-2xl text-blue-700">91.6%</span>
-                  </div>
+                  <button
+                    onClick={() => setShowCohortModal(true)}
+                    className="py-2.5 px-5 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    Create New Cohort
+                  </button>
                 </div>
               </div>
 
-              {/* Cohort Controls & List */}
-              <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h2 className="font-display font-extrabold text-xl text-gray-800">Learning Cohorts & Batches</h2>
-                    <p className="text-xs text-gray-400 font-medium mt-0.5">Manage student cohorts, assign test packages, and track team progress.</p>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-60">
-                      <input 
-                        type="text" 
-                        placeholder="Search Cohorts..." 
-                        value={searchCohort}
-                        onChange={(e) => setSearchCohort(e.target.value)}
-                        className="w-full py-2.5 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
-                      />
-                      <Search className="absolute right-3.5 top-3 w-4 h-4 text-gray-400" />
-                    </div>
-
-                    <button 
-                      onClick={() => setShowCohortModal(true)}
-                      className="py-2.5 px-5 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2 cursor-pointer shrink-0"
-                    >
-                      <FolderPlus className="w-4 h-4" />
-                      New Cohort
-                    </button>
-                  </div>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="bg-purple-50 rounded-3xl p-5 border border-purple-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Cohort Name</p>
+                  <p className="mt-4 text-3xl font-extrabold text-purple-900">{cohorts.length}</p>
                 </div>
+                <div className="bg-green-50 rounded-3xl p-5 border border-green-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Students</p>
+                  <p className="mt-4 text-3xl font-extrabold text-green-900">{cohorts.reduce((sum, c) => sum + c.totalStudents, 0)}</p>
+                </div>
+                <div className="bg-blue-50 rounded-3xl p-5 border border-blue-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Active Cohorts</p>
+                  <p className="mt-4 text-3xl font-extrabold text-blue-900">{cohorts.filter(c => c.status === 'Active').length}</p>
+                </div>
+                <div className="bg-red-50 rounded-3xl p-5 border border-red-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Inactive</p>
+                  <p className="mt-4 text-3xl font-extrabold text-red-900">{cohorts.filter(c => c.status !== 'Active').length}</p>
+                </div>
+              </div>
 
-                {/* Cohort Cards Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {filteredCohorts.map(cohort => (
-                    <div key={cohort.id} className="bg-gray-50/80 border border-gray-150 hover:border-purple-200 rounded-3xl p-6 transition-all hover:shadow-md flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start mb-3">
-                          <h3 className="font-display font-extrabold text-base text-gray-800">{cohort.name}</h3>
-                          <button 
-                            onClick={() => {
-                              if (confirm(`Delete cohort "${cohort.name}"?`)) deleteCohort(cohort.id);
-                            }}
-                            className="p-1 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-500 leading-relaxed mb-6 font-medium">{cohort.description}</p>
-                      </div>
-
-                      <div className="flex flex-col gap-4 border-t border-gray-150 pt-4">
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-                          <span className="text-gray-400 font-semibold text-[10px] uppercase">Enrolled Members:</span>
-                          <span className="text-purple-900 bg-purple-100 py-0.5 px-2.5 rounded-full">{cohort.totalStudents} Students</span>
-                        </div>
-
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-                          <span className="text-gray-400 font-semibold text-[10px] uppercase">Average Score:</span>
-                          <span className="text-green-700 bg-green-50 py-0.5 px-2.5 rounded-full">{cohort.avgScore}%</span>
-                        </div>
-
-                        {/* Student Avatars list */}
-                        <div className="flex justify-between items-center pt-2">
-                          <div className="flex -space-x-2">
-                            {cohort.students.slice(0, 4).map((s, idx) => (
-                              <div key={idx} className="w-7 h-7 rounded-full bg-purple-200 text-purple-900 font-bold text-[10px] flex items-center justify-center border-2 border-white shadow-xs">
-                                {s.name[0]}
-                              </div>
-                            ))}
-                            {cohort.students.length > 4 && (
-                              <div className="w-7 h-7 rounded-full bg-gray-200 text-gray-600 font-bold text-[10px] flex items-center justify-center border-2 border-white">
-                                +{cohort.students.length - 4}
-                              </div>
-                            )}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                      <th className="py-3.5 px-4 rounded-l-xl">Cohort Name</th>
+                      <th className="py-3.5 px-4">Students</th>
+                      <th className="py-3.5 px-4">Assigned Test</th>
+                      <th className="py-3.5 px-4">Created On</th>
+                      <th className="py-3.5 px-4">Status</th>
+                      <th className="py-3.5 px-4 rounded-r-xl">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
+                    {filteredCohorts.map(cohort => (
+                      <tr key={cohort.id} className="hover:bg-gray-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-gray-800">{cohort.name}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{cohort.totalStudents}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{cohort.assignedTests?.[0] || 'Unassigned'}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{cohort.createdOn}</td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold ${cohort.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            {cohort.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2">
+                            <button className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-colors">
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-800 transition-colors">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Delete cohort "${cohort.name}"?`)) deleteCohort(cohort.id);
+                              }}
+                              className="p-2 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-
-                          <button 
-                            onClick={() => {
-                              setSelectedCohortForStudent(cohort);
-                              setShowAddStudentModal(true);
-                            }}
-                            className="py-1.5 px-3 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <UserPlus className="w-3.5 h-3.5" />
-                            Add Student
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-            </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           )}
 
-          {/* VIEW 3: DUMMY RESULTS INFOGRAPHIC */}
-          {activeMenu === 'Results' && (
-            <div className="flex flex-col gap-8">
-              
-              {/* Infographic Header */}
-              <div className="bg-gradient-to-r from-[#5e328c] via-[#7d48b1] to-[#e54e73] rounded-3xl p-8 shadow-xl text-white flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          {/* VIEW 3: ALL TESTS */}
+          {activeMenu === 'All Tests' && (
+            <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest bg-white/20 px-3 py-1 rounded-full text-pink-100 inline-block mb-3">
-                    Visual Analytics Infographic
-                  </span>
-                  <h2 className="font-display font-extrabold text-3xl text-white tracking-wide">
-                    Assessment Performance Infographic
-                  </h2>
-                  <p className="text-xs text-purple-100 font-medium max-w-xl mt-1 leading-relaxed">
-                    Real-time aggregated results across Multiple Choice, Short Answer, and Embedded question types.
-                  </p>
+                  <h2 className="font-display font-extrabold text-xl text-gray-800">All Tests</h2>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Review assessments, manage questions, and export test packages.</p>
                 </div>
-
-                <button 
-                  onClick={() => showToast("Infographic report downloaded successfully!")}
-                  className="py-3 px-6 bg-white hover:bg-pink-50 text-[#5e328c] font-extrabold rounded-2xl text-xs transition-all shadow-lg flex items-center gap-2 cursor-pointer shrink-0"
+                <button
+                  onClick={handleOpenCreate}
+                  className="py-2.5 px-5 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-100 flex items-center gap-2"
                 >
-                  <Download className="w-4 h-4 text-[#e54e73]" />
-                  Export Infographic Report
+                  <Plus className="w-4 h-4" />
+                  Create New Test
                 </button>
               </div>
 
-              {/* Grid 1: Question Type Breakdown & Topic Mastery */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                {/* Infographic Card 1: Question Type Accuracy Breakdown (6 cols) */}
-                <div className="lg:col-span-6 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2 flex items-center gap-2">
-                      <PieChart className="w-5 h-5 text-[#e54e73]" />
-                      Question Format Accuracy Rates
-                    </h3>
-                    <p className="text-xs text-gray-400 font-medium mb-6">Comparative student accuracy across MCQ, Short Answer, and Embedded Questions.</p>
-                  </div>
-
-                  <div className="flex flex-col gap-6">
-                    {infographicData.questionTypeAccuracy.map((item, idx) => (
-                      <div key={idx} className="flex flex-col gap-2">
-                        <div className="flex justify-between items-center text-xs font-bold text-gray-700">
-                          <span className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></span>
-                            {item.type}
-                          </span>
-                          <span className="font-black text-purple-950">{item.accuracy}% Accuracy</span>
-                        </div>
-                        <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full rounded-full transition-all duration-1000 ease-out"
-                            style={{ width: `${item.accuracy}%`, backgroundColor: item.color }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Infographic Card 2: Skill & Topic Mastery (6 cols) */}
-                <div className="lg:col-span-6 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2 flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5 text-purple-600" />
-                      Topic & Skill Benchmark Index
-                    </h3>
-                    <p className="text-xs text-gray-400 font-medium mb-6">Subject area performance scores aggregated from all test submissions.</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {infographicData.topicMastery.map((topic, idx) => (
-                      <div key={idx} className="bg-purple-50/60 p-5 rounded-2xl border border-purple-100 flex flex-col justify-between">
-                        <span className="text-xs font-bold text-gray-700 mb-2">{topic.topic}</span>
-                        <div className="flex items-baseline gap-2">
-                          <span className="font-display font-extrabold text-2xl text-purple-950">{topic.score}%</span>
-                          <span className="text-[10px] text-green-600 font-bold">Passing Grade</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Grid 2: Leaderboard & Cohort Distribution */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                {/* Leaderboard Table (7 cols) */}
-                <div className="lg:col-span-7 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col">
-                  <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-yellow-500" />
-                    Top Performing Student Leaderboard
-                  </h3>
-                  <p className="text-xs text-gray-400 font-medium mb-6">Highest scoring students based on overall assessment performance.</p>
-
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
-                          <th className="py-3 px-4 rounded-l-xl">Rank</th>
-                          <th className="py-3 px-4">Student Name</th>
-                          <th className="py-3 px-4">Cohort Batch</th>
-                          <th className="py-3 px-4 text-center rounded-r-xl">Score Rate</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 text-xs text-gray-700 font-semibold">
-                        {infographicData.leaderboard.map((item) => (
-                          <tr key={item.rank} className="hover:bg-purple-50/50 transition-colors">
-                            <td className="py-3.5 px-4 font-black">
-                              <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] ${
-                                item.rank === 1 ? 'bg-yellow-500' : item.rank === 2 ? 'bg-gray-400' : 'bg-amber-600'
-                              }`}>
-                                #{item.rank}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                      <th className="py-3.5 px-4 rounded-l-xl">Test Title</th>
+                      <th className="py-3.5 px-4">Description</th>
+                      <th className="py-3.5 px-4 text-center">Questions</th>
+                      <th className="py-3.5 px-4 text-center">Duration</th>
+                      <th className="py-3.5 px-4 text-center">Type Mix</th>
+                      <th className="py-3.5 px-4 text-center rounded-r-xl">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
+                    {paginatedTests.map(test => (
+                      <tr key={test.id} className="hover:bg-gray-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-gray-800">{test.title}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{test.description}</td>
+                        <td className="py-3.5 px-4 text-center font-bold text-purple-700">{test.questions?.length || 0}</td>
+                        <td className="py-3.5 px-4 text-center text-gray-500">{test.duration} mins</td>
+                        <td className="py-3.5 px-4 text-center text-gray-500">
+                          <div className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.2em]">
+                            {Array.from(new Set(test.questions?.map(q => q.type))).map((type, idx) => (
+                              <span key={idx} className={`px-2 py-1 rounded-full ${type === 'mcq' ? 'bg-purple-100 text-purple-700' : type === 'short_ans' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
+                                {type === 'mcq' ? 'MCQ' : type === 'short_ans' ? 'Short' : 'Embed'}
                               </span>
-                            </td>
-                            <td className="py-3.5 px-4 font-bold text-gray-900">{item.name}</td>
-                            <td className="py-3.5 px-4 text-gray-400 font-normal">{item.cohort}</td>
-                            <td className="py-3.5 px-4 text-center font-extrabold text-green-600">{item.score}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Pass/Fail Infographic Badge Card (5 cols) */}
-                <div className="lg:col-span-5 bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-display font-extrabold text-lg text-gray-800 mb-2">Completion Metrics</h3>
-                    <p className="text-xs text-gray-400 font-medium mb-6">Overall pass rate & average attempt duration.</p>
-                  </div>
-
-                  <div className="flex flex-col gap-6">
-                    <div className="bg-green-50 p-6 rounded-2xl border border-green-100 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-extrabold text-green-700 uppercase tracking-wider block">Pass Rate</span>
-                        <span className="font-display font-extrabold text-3xl text-green-900">87.5%</span>
-                      </div>
-                      <Check className="w-8 h-8 text-green-600" />
-                    </div>
-
-                    <div className="bg-purple-50 p-6 rounded-2xl border border-purple-100 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] font-extrabold text-purple-700 uppercase tracking-wider block">Avg Duration</span>
-                        <span className="font-display font-extrabold text-3xl text-purple-950">18.4 mins</span>
-                      </div>
-                      <Clock className="w-8 h-8 text-purple-600" />
-                    </div>
-                  </div>
-                </div>
-
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleOpenPreview(test)}
+                              className="p-1.5 hover:bg-purple-50 text-purple-600 hover:text-purple-800 rounded-lg transition-colors"
+                              title="Preview"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleOpenEdit(test)}
+                              className="p-1.5 hover:bg-blue-50 text-blue-600 hover:text-blue-800 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => { if (confirm(`Delete test "${test.title}"?`)) deleteTest(test.id); }}
+                              className="p-1.5 hover:bg-red-50 text-red-500 hover:text-red-700 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-            </div>
+              {tests.length > 0 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-50 pt-4 mt-2">
+                  <span className="text-[10px] text-gray-400 font-semibold select-none">
+                    Showing {(testPage - 1) * testsPerPage + 1} to {Math.min(testPage * testsPerPage, tests.length)} of {tests.length} tests
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      disabled={testPage === 1}
+                      onClick={() => setTestPage(prev => prev - 1)}
+                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      &lt;
+                    </button>
+                    {[...Array(totalTestPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setTestPage(i + 1)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                          testPage === i + 1
+                            ? 'bg-purple-900 text-white shadow-xs'
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      disabled={testPage === totalTestPages}
+                      onClick={() => setTestPage(prev => prev + 1)}
+                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* VIEW 4: SETTINGS */}
+          {activeMenu === 'Settings' && (
+            <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
+              <div className="flex flex-col gap-3">
+                <h2 className="font-display font-extrabold text-xl text-gray-800">Settings</h2>
+                <p className="text-xs text-gray-400 font-medium">Manage your creator settings and workspace preferences.</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bg-purple-50 rounded-3xl p-6 border border-purple-100 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-3">Profile</h3>
+                  <p className="text-xs text-gray-500">Update your display name, title, and contact details.</p>
+                </div>
+                <div className="bg-blue-50 rounded-3xl p-6 border border-blue-100 shadow-sm">
+                  <h3 className="font-bold text-gray-800 mb-3">Notifications</h3>
+                  <p className="text-xs text-gray-500">Configure alerts for new submissions and test completions.</p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* VIEW 3: RESULTS */}
+          {activeMenu === 'Results' && (
+            <section className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-8">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 className="font-display font-extrabold text-xl text-gray-800">Results</h2>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Detailed results across all tests and cohorts.</p>
+                </div>
+                <div className="relative w-full md:w-72">
+                  <input
+                    type="text"
+                    placeholder="Search student or test..."
+                    value={searchStudent}
+                    onChange={(e) => { setSearchStudent(e.target.value); setStudentPage(1); }}
+                    className="w-full py-2.5 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
+                  />
+                  <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div className="bg-purple-50 rounded-3xl p-6 border border-purple-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Attempts</p>
+                  <p className="mt-4 text-3xl font-extrabold text-purple-900">{attemptsCount}</p>
+                </div>
+                <div className="bg-green-50 rounded-3xl p-6 border border-green-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Passed</p>
+                  <p className="mt-4 text-3xl font-extrabold text-green-900">{passedCount}</p>
+                </div>
+                <div className="bg-red-50 rounded-3xl p-6 border border-red-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Failed</p>
+                  <p className="mt-4 text-3xl font-extrabold text-red-900">{failedCount}</p>
+                </div>
+                <div className="bg-blue-50 rounded-3xl p-6 border border-blue-100 shadow-sm">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Average Score</p>
+                  <p className="mt-4 text-3xl font-extrabold text-blue-900">{averageScore}%</p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[10px] font-extrabold text-gray-400 uppercase bg-gray-50/50">
+                      <th className="py-3.5 px-4 rounded-l-xl">Student Name</th>
+                      <th className="py-3.5 px-4">Test Name</th>
+                      <th className="py-3.5 px-4">Cohort</th>
+                      <th className="py-3.5 px-4 text-center">Status</th>
+                      <th className="py-3.5 px-4 text-center">Score</th>
+                      <th className="py-3.5 px-4 text-center">Percentage</th>
+                      <th className="py-3.5 px-4 text-center">Time Taken</th>
+                      <th className="py-3.5 px-4 text-center rounded-r-xl">Completed On</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50 text-xs text-gray-600 font-medium">
+                    {paginatedStudents.map((student, idx) => (
+                      <tr key={student.id || idx} className="hover:bg-gray-50/70 transition-colors">
+                        <td className="py-3.5 px-4 font-bold text-gray-800">{student.name}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{student.testTitle}</td>
+                        <td className="py-3.5 px-4 text-gray-500">{student.cohort}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-[10px] font-bold ${
+                            student.status === 'Completed' ? 'bg-green-50 text-green-700' :
+                            student.status === 'In Progress' ? 'bg-yellow-50 text-yellow-700' :
+                            'bg-red-50 text-red-700'
+                          }`}>
+                            {student.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center font-bold text-purple-700">{student.score}</td>
+                        <td className="py-3.5 px-4 text-center text-gray-500">{student.percentage}%</td>
+                        <td className="py-3.5 px-4 text-center text-gray-500">{student.timeTaken || '-'}</td>
+                        <td className="py-3.5 px-4 text-center text-gray-500">{student.completedOn}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {filteredStudents.length > 0 && (
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-50 pt-4 mt-2">
+                  <span className="text-[10px] text-gray-400 font-semibold select-none">
+                    Showing {(studentPage - 1) * studentsPerPage + 1} to {Math.min(studentPage * studentsPerPage, filteredStudents.length)} of {filteredStudents.length} results
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button 
+                      disabled={studentPage === 1}
+                      onClick={() => setStudentPage(prev => prev - 1)}
+                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      &lt;
+                    </button>
+                    {[...Array(totalStudentPages)].map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setStudentPage(i + 1)}
+                        className={`px-3 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer ${
+                          studentPage === i + 1 
+                            ? 'bg-purple-900 text-white shadow-xs' 
+                            : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200'
+                        }`}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                    <button 
+                      disabled={studentPage === totalStudentPages}
+                      onClick={() => setStudentPage(prev => prev + 1)}
+                      className="p-1 bg-gray-50 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-gray-50 border border-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
           )}
 
         </div>

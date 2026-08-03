@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
-// Default initial tests with full questions list featuring MCQ, Short Answer, and Embedded Question types
+// Default initial tests
 const DEFAULT_TESTS = [
   {
     id: 'js-basics',
@@ -119,17 +119,44 @@ const DEFAULT_TESTS = [
   }
 ];
 
+const DEFAULT_COURSES = [
+  {
+    id: 'course-1',
+    title: 'JavaScript & Web Engineering',
+    description: 'Comprehensive course covering JS fundamentals, DOM, and modern web APIs.',
+    duration: 120,
+    status: 'Active',
+    createdOn: '20 May 2024'
+  },
+  {
+    id: 'course-2',
+    title: 'React Fundamentals & Component Architecture',
+    description: 'Build interactive UIs using React components, hooks, and state management.',
+    duration: 140,
+    status: 'Active',
+    createdOn: '18 May 2024'
+  },
+  {
+    id: 'course-3',
+    title: 'HTML & CSS Design System',
+    description: 'Master layout, responsive design, and modern CSS styling patterns.',
+    duration: 90,
+    status: 'Draft',
+    createdOn: '15 May 2024'
+  }
+];
+
 // Preset employee results matching office dashboard
 const DEFAULT_STUDENT_RESULTS = [
-  { id: '1', name: 'Arjun Sharma', role: 'Sr. Software Engineer', status: 'Completed', score: 22, totalQs: 25, percentage: 88, highestPercentage: 92, reattempts: 3, completedOn: '20 May 2024', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '2', name: 'Priya Patel', role: 'Data Specialist', status: 'Completed', score: 20, totalQs: 25, percentage: 80, highestPercentage: 88, reattempts: 2, completedOn: '20 May 2024', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '3', name: 'Rahul Verma', role: 'UI/UX Developer', status: 'Completed', score: 18, totalQs: 25, percentage: 72, highestPercentage: 80, reattempts: 4, completedOn: '19 May 2024', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '4', name: 'Sneha Reddy', role: 'QA Automation Lead', status: 'In Progress', score: 15, totalQs: 25, percentage: 60, highestPercentage: 68, reattempts: 1, completedOn: '-', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '5', name: 'Karan Mehta', role: 'Backend Engineer', status: 'Completed', score: 14, totalQs: 25, percentage: 56, highestPercentage: 64, reattempts: 2, completedOn: '19 May 2024', testTitle: 'React Fundamentals', cohort: 'Data Science & Backend Cohort' },
-  { id: '6', name: 'Anjali Singh', role: 'DevOps Specialist', status: 'Not Attempted', score: 0, totalQs: 25, percentage: 0, highestPercentage: 0, reattempts: 0, completedOn: '-', testTitle: 'React Fundamentals', cohort: 'Data Science & Backend Cohort' },
-  { id: '7', name: 'Vikram Das', role: 'Data Scientist', status: 'Completed', score: 24, totalQs: 25, percentage: 96, highestPercentage: 96, reattempts: 1, completedOn: '18 May 2024', testTitle: 'Python Basics', cohort: 'Data Science & Backend Cohort' },
-  { id: '8', name: 'Meera Kapoor', role: 'Lead Frontend Architect', status: 'Completed', score: 25, totalQs: 25, percentage: 100, highestPercentage: 100, reattempts: 0, completedOn: '17 May 2024', testTitle: 'HTML & CSS Design System', cohort: 'UI/UX & Frontend Mastery' },
-  { id: '9', name: 'Rohan Gupta', role: 'Full Stack Engineer', status: 'Completed', score: 21, totalQs: 25, percentage: 84, highestPercentage: 90, reattempts: 3, completedOn: '16 May 2024', testTitle: 'JavaScript & Web Engineering', cohort: 'UI/UX & Frontend Mastery' }
+  { id: '1', name: 'Arjun Sharma', role: 'Sr. Software Engineer', status: 'Completed', score: 22, totalQs: 25, percentage: 88, highestPercentage: 92, reattempts: 3, completedOn: '20 May 2024', timeTaken: '27 mins', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
+  { id: '2', name: 'Priya Patel', role: 'Data Specialist', status: 'Completed', score: 20, totalQs: 25, percentage: 80, highestPercentage: 88, reattempts: 2, completedOn: '20 May 2024', timeTaken: '29 mins', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
+  { id: '3', name: 'Rahul Verma', role: 'UI/UX Developer', status: 'Completed', score: 18, totalQs: 25, percentage: 72, highestPercentage: 80, reattempts: 4, completedOn: '19 May 2024', timeTaken: '25 mins', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
+  { id: '4', name: 'Sneha Reddy', role: 'QA Automation Lead', status: 'In Progress', score: 15, totalQs: 25, percentage: 60, highestPercentage: 68, reattempts: 1, completedOn: '-', timeTaken: '-', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
+  { id: '5', name: 'Karan Mehta', role: 'Backend Engineer', status: 'Completed', score: 14, totalQs: 25, percentage: 56, highestPercentage: 64, reattempts: 2, completedOn: '19 May 2024', timeTaken: '38 mins', testTitle: 'React Fundamentals', cohort: 'Data Science & Backend Cohort' },
+  { id: '6', name: 'Anjali Singh', role: 'DevOps Specialist', status: 'Not Attempted', score: 0, totalQs: 25, percentage: 0, highestPercentage: 0, reattempts: 0, completedOn: '-', timeTaken: '-', testTitle: 'React Fundamentals', cohort: 'Data Science & Backend Cohort' },
+  { id: '7', name: 'Vikram Das', role: 'Data Scientist', status: 'Completed', score: 24, totalQs: 25, percentage: 96, highestPercentage: 96, reattempts: 1, completedOn: '18 May 2024', timeTaken: '22 mins', testTitle: 'Python Basics', cohort: 'Data Science & Backend Cohort' },
+  { id: '8', name: 'Meera Kapoor', role: 'Lead Frontend Architect', status: 'Completed', score: 25, totalQs: 25, percentage: 100, highestPercentage: 100, reattempts: 0, completedOn: '17 May 2024', timeTaken: '18 mins', testTitle: 'HTML & CSS Design System', cohort: 'UI/UX & Frontend Mastery' },
+  { id: '9', name: 'Rohan Gupta', role: 'Full Stack Engineer', status: 'Completed', score: 21, totalQs: 25, percentage: 84, highestPercentage: 90, reattempts: 3, completedOn: '16 May 2024', timeTaken: '30 mins', testTitle: 'JavaScript & Web Engineering', cohort: 'UI/UX & Frontend Mastery' }
 ];
 
 // Preset Cohorts List
@@ -141,6 +168,8 @@ const DEFAULT_COHORTS = [
     totalStudents: 18,
     avgScore: 84,
     completionRate: 92,
+    status: 'Active',
+    createdOn: '18 May 2024',
     assignedTests: ['js-basics', 'react-fundamentals'],
     students: [
       { id: 's1', name: 'Arjun Sharma', email: 'arjun@example.com', score: '88%', status: 'Completed' },
@@ -156,6 +185,8 @@ const DEFAULT_COHORTS = [
     totalStudents: 14,
     avgScore: 76,
     completionRate: 85,
+    status: 'Active',
+    createdOn: '15 May 2024',
     assignedTests: ['js-basics'],
     students: [
       { id: 's5', name: 'Karan Mehta', email: 'karan@example.com', score: '56%', status: 'Completed' },
@@ -170,6 +201,8 @@ const DEFAULT_COHORTS = [
     totalStudents: 12,
     avgScore: 90,
     completionRate: 98,
+    status: 'Active',
+    createdOn: '12 May 2024',
     assignedTests: ['html-css'],
     students: [
       { id: 's8', name: 'Meera Kapoor', email: 'meera@example.com', score: '94%', status: 'Completed' },
@@ -191,7 +224,13 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : DEFAULT_TESTS;
   });
 
-  // Student Results List (Visible to Creator)
+  // Courses
+  const [courses, setCourses] = useState(() => {
+    const saved = localStorage.getItem('shai_courses');
+    return saved ? JSON.parse(saved) : DEFAULT_COURSES;
+  });
+
+  // Student Results List
   const [studentResults, setStudentResults] = useState(() => {
     const saved = localStorage.getItem('shai_student_results');
     if (!saved) return DEFAULT_STUDENT_RESULTS;
@@ -213,13 +252,13 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  // Cohorts List (Visible to Creator)
+  // Cohorts List
   const [cohorts, setCohorts] = useState(() => {
     const saved = localStorage.getItem('shai_cohorts');
     return saved ? JSON.parse(saved) : DEFAULT_COHORTS;
   });
 
-  // Charan's Completed Tests (Employee dashboard data helper)
+  // Completed Tests helper
   const [charanCompletedTests, setCharanCompletedTests] = useState(() => {
     const saved = localStorage.getItem('shai_charan_completed');
     return saved ? JSON.parse(saved) : [
@@ -228,13 +267,12 @@ export const AppProvider = ({ children }) => {
     ];
   });
 
-  // Total Completed Tests Count = 12 (Charan's historical completed tests count)
-  const [completedCountOffset, setCompletedCountOffset] = useState(() => {
+  const [completedCountOffset] = useState(() => {
     const saved = localStorage.getItem('shai_completed_offset');
     return saved ? parseInt(saved) : 10;
   });
 
-  // Save state updates to LocalStorage
+  // LocalStorage Persistence
   useEffect(() => {
     if (user) {
       localStorage.setItem('shai_user', JSON.stringify(user));
@@ -259,27 +297,55 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('shai_charan_completed', JSON.stringify(charanCompletedTests));
   }, [charanCompletedTests]);
 
-  useEffect(() => {
-    localStorage.setItem('shai_completed_offset', completedCountOffset.toString());
-  }, [completedCountOffset]);
+  // Auth Login (Connected to FastAPI / Local Fallback)
+  const login = async (identifier, password) => {
+    try {
+      // 1. Try hitting the real FastAPI Auth Endpoint
+      const response = await fetch('http://localhost:8000/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier, password })
+      });
 
-  // Actions
-  const login = (role) => {
-    let userData = null;
-    if (role === 'student') {
-      userData = { name: 'Charan', role: 'student', title: 'Employee' };
-    } else if (role === 'creator') {
-      userData = { name: 'Charan', role: 'creator', title: 'Course Creator' };
+      if (response.ok) {
+        const data = await response.json();
+        const userData = {
+          name: data.user?.username || identifier,
+          role: data.user?.role?.toLowerCase() || 'student',
+          title: data.user?.role || 'Learner',
+          token: data.access_token
+        };
+        setUser(userData);
+        return userData;
+      } else {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || 'Invalid login credentials.');
+      }
+    } catch (err) {
+      // 2. Local Fallback for Demo Testing
+      const lower = identifier ? identifier.toLowerCase().trim() : '';
+      if (lower === 'admin') {
+        const userData = { name: 'Charan', role: 'admin', title: 'Administrator' };
+        setUser(userData);
+        return userData;
+      } else if (lower === 'creator' || lower === 'teacher') {
+        const userData = { name: 'Charan', role: 'creator', title: 'Course Creator' };
+        setUser(userData);
+        return userData;
+      } else if (lower === 'student' || lower === 'charan' || lower) {
+        const userData = { name: identifier || 'Charan', role: 'student', title: 'Employee' };
+        setUser(userData);
+        return userData;
+      }
+      throw err;
     }
-    setUser(userData);
-    return userData;
   };
 
   const logout = () => {
     setUser(null);
   };
 
-  // Create a new test
+  // Test Actions
   const createTest = (newTest) => {
     const formattedTest = {
       id: newTest.id || `test-${Date.now()}`,
@@ -297,7 +363,6 @@ export const AppProvider = ({ children }) => {
     setTests(prev => [formattedTest, ...prev]);
   };
 
-  // Update existing test
   const updateTest = (id, updatedTest) => {
     setTests(prev => prev.map(test => {
       if (test.id === id) {
@@ -314,9 +379,39 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-  // Delete test
   const deleteTest = (id) => {
     setTests(prev => prev.filter(test => test.id !== id));
+  };
+
+  const createCourse = (newCourse) => {
+    const formattedCourse = {
+      id: newCourse.id || `course-${Date.now()}`,
+      title: newCourse.title,
+      description: newCourse.description,
+      duration: parseInt(newCourse.duration) || 30,
+      status: newCourse.status || 'Draft',
+      createdOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    };
+    setCourses(prev => [formattedCourse, ...prev]);
+  };
+
+  const updateCourse = (id, updatedCourse) => {
+    setCourses(prev => prev.map(course => {
+      if (course.id === id) {
+        return {
+          ...course,
+          title: updatedCourse.title,
+          description: updatedCourse.description,
+          duration: parseInt(updatedCourse.duration) || course.duration,
+          status: updatedCourse.status || course.status
+        };
+      }
+      return course;
+    }));
+  };
+
+  const deleteCourse = (id) => {
+    setCourses(prev => prev.filter(course => course.id !== id));
   };
 
   // Cohort Actions
@@ -328,6 +423,8 @@ export const AppProvider = ({ children }) => {
       totalStudents: 0,
       avgScore: 0,
       completionRate: 0,
+      status: 'Active',
+      createdOn: new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
       assignedTests: newCohort.assignedTests || [],
       students: []
     };
@@ -355,7 +452,7 @@ export const AppProvider = ({ children }) => {
     }));
   };
 
-  // Submit test results (When Charan finishes a test)
+  // Submit test results
   const submitTestResult = (testId, answers, score, totalQuestions) => {
     const matchedTest = tests.find(t => t.id === testId);
     if (!matchedTest) return;
@@ -367,7 +464,6 @@ export const AppProvider = ({ children }) => {
       year: 'numeric'
     });
 
-    // 1. Add to Charan's completed list
     const isAlreadyCompleted = charanCompletedTests.some(c => c.id === testId);
     if (!isAlreadyCompleted) {
       setCharanCompletedTests(prev => [
@@ -389,7 +485,6 @@ export const AppProvider = ({ children }) => {
       ));
     }
 
-    // 2. Add to Creator's Employee Submissions list
     const existingResult = studentResults.find(r => r.name.includes('Charan') && r.testTitle === matchedTest.title);
     const existingAttemptCount = studentResults.filter(r => r.name.includes('Charan') && r.testTitle === matchedTest.title).length;
     const currentHighest = existingResult ? Math.max(existingResult.highestPercentage || 0, percentage) : percentage;
@@ -397,7 +492,7 @@ export const AppProvider = ({ children }) => {
     const charanResultId = `result-charan-${Date.now()}`;
     const newStudentResult = {
       id: charanResultId,
-      name: 'Charan (You)',
+      name: user?.name ? `${user.name} (You)` : 'Charan (You)',
       role: 'Employee / Engineer',
       status: 'Completed',
       score,
@@ -413,7 +508,7 @@ export const AppProvider = ({ children }) => {
     setStudentResults(prev => [newStudentResult, ...prev]);
   };
 
-  // Get Charan's stats
+  // Stats computation
   const completedIds = charanCompletedTests.map(c => c.id);
   const upcomingTests = tests.filter(test => !completedIds.includes(test.id));
   
@@ -430,7 +525,6 @@ export const AppProvider = ({ children }) => {
     notAttempted: 1
   };
 
-  // Calculate distributions for Infographic charts
   const getPerformanceDistribution = () => {
     let excellent = 14;
     let good = 12;
@@ -459,7 +553,6 @@ export const AppProvider = ({ children }) => {
     };
   };
 
-  // Infographic Analytics Helper
   const getInfographicAnalytics = () => {
     return {
       questionTypeAccuracy: [
@@ -494,6 +587,10 @@ export const AppProvider = ({ children }) => {
       deleteTest,
       studentResults,
       setStudentResults,
+      courses,
+      createCourse,
+      updateCourse,
+      deleteCourse,
       cohorts,
       createCohort,
       deleteCohort,
@@ -512,3 +609,4 @@ export const AppProvider = ({ children }) => {
 };
 
 export const useApp = () => useContext(AppContext);
+export const useAuth = () => useContext(AppContext);

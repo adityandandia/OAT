@@ -3,3 +3,5 @@
 node_modules/
 *.log
 /docs/confidential/
+/backend/.vs
+.vs
