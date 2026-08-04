@@ -221,7 +221,17 @@ export const AppProvider = ({ children }) => {
   // Tests
   const [tests, setTests] = useState(() => {
     const saved = localStorage.getItem('shai_tests');
-    return saved ? JSON.parse(saved) : DEFAULT_TESTS;
+    const initialData = saved ? JSON.parse(saved) : DEFAULT_TESTS;
+    return initialData.map(test => ({
+      ...test,
+      questions: test.questions?.map(q => {
+        let type = q.type || 'mcq';
+        if (type === 'embedded' && (!q.codeSnippet || q.codeSnippet.trim() === '') && q.options && q.options.length > 0) {
+          type = 'mcq';
+        }
+        return { ...q, type };
+      })
+    }));
   });
 
   // Courses

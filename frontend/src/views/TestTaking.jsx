@@ -127,8 +127,8 @@ const TestTaking = () => {
     let calculatedScore = 0;
     activeTest.questions.forEach((q, idx) => {
       const userAns = answers[idx];
-      if (q.type === 'short_ans') {
-        if (typeof userAns === 'string' && userAns.trim().length > 5) {
+      if (q.type === 'short_ans' || q.type === 'embedded') {
+        if (typeof userAns === 'string' && userAns.trim().length > 0) {
           calculatedScore++;
         }
       } else {
@@ -212,8 +212,8 @@ const TestTaking = () => {
             <div className="flex flex-col gap-4 max-h-80 overflow-y-auto pr-2">
               {activeTest.questions.map((q, idx) => {
                 const userChoice = answers[idx];
-                const isShort = q.type === 'short_ans';
-                const isCorrect = isShort ? (typeof userChoice === 'string' && userChoice.trim().length > 5) : userChoice === q.correctAnswer;
+                const isShort = q.type === 'short_ans' || q.type === 'embedded';
+                const isCorrect = isShort ? (typeof userChoice === 'string' && userChoice.trim().length > 0) : userChoice === q.correctAnswer;
                 
                 return (
                   <div key={q.id || idx} className={`p-4 rounded-xl border ${
@@ -394,19 +394,19 @@ const TestTaking = () => {
 
             {/* QUESTION INPUT FORMATS */}
             
-            {/* TYPE 1: SHORT ANSWER TEXTAREA */}
-            {currentQuestion.type === 'short_ans' ? (
+            {/* TYPE 1 & 3: SHORT ANSWER OR EMBEDDED TEXT/CODE RESPONSE */}
+            {currentQuestion.type === 'short_ans' || currentQuestion.type === 'embedded' ? (
               <div className="flex flex-col gap-3">
                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1">
                   <FileText className="w-3.5 h-3.5 text-purple-600" />
-                  Type your explanation or response below:
+                  {currentQuestion.type === 'embedded' ? 'Type your code or response below:' : 'Type your explanation or response below:'}
                 </label>
                 <textarea 
                   rows="5"
-                  placeholder="Provide a clear, detailed answer to the prompt..."
+                  placeholder={currentQuestion.type === 'embedded' ? 'Provide your code answer or solution here...' : 'Provide a clear, detailed answer to the prompt...'}
                   value={typeof answers[currentIdx] === 'string' ? answers[currentIdx] : ''}
                   onChange={(e) => handleTextAnswerChange(e.target.value)}
-                  className="w-full p-4 rounded-2xl border border-gray-250 focus:border-purple-600 focus:ring-2 focus:ring-purple-200 text-sm font-medium text-gray-800 placeholder-gray-400 resize-none transition-all shadow-xs"
+                  className={`w-full p-4 rounded-2xl border border-gray-250 focus:border-purple-600 focus:ring-2 focus:ring-purple-200 text-sm font-medium text-gray-800 placeholder-gray-400 resize-none transition-all shadow-xs ${currentQuestion.type === 'embedded' ? 'font-mono' : ''}`}
                 />
                 <div className="flex justify-between items-center text-[10px] text-gray-400 font-semibold px-1">
                   <span>Auto-saves as you type</span>

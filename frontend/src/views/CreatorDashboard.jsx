@@ -75,6 +75,9 @@ const CreatorDashboard = () => {
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentEmail, setNewStudentEmail] = useState('');
 
+  // Profile Dropdown State
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
   // Toast / Notification banner
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -107,17 +110,23 @@ const CreatorDashboard = () => {
     setTestTitle(test.title);
     setTestDesc(test.description);
     setTestDuration(test.duration.toString());
-    setTestQuestions(test.questions.map(q => ({
-      type: q.type || 'mcq',
-      text: q.text,
-      options: q.options ? [...q.options] : ['', '', '', ''],
-      correctAnswer: q.correctAnswer || 0,
-      sampleAnswer: q.sampleAnswer || '',
-      keywords: q.keywords ? q.keywords.join(', ') : '',
-      embedType: q.embedType || 'code',
-      codeSnippet: q.codeSnippet || '',
-      embedUrl: q.embedUrl || ''
-    })));
+    setTestQuestions(test.questions.map(q => {
+      let resolvedType = q.type || 'mcq';
+      if (resolvedType === 'embedded' && (!q.codeSnippet || q.codeSnippet.trim() === '') && q.options && q.options.length > 0) {
+        resolvedType = 'mcq';
+      }
+      return {
+        type: resolvedType,
+        text: q.text,
+        options: q.options ? [...q.options] : ['', '', '', ''],
+        correctAnswer: q.correctAnswer || 0,
+        sampleAnswer: q.sampleAnswer || '',
+        keywords: q.keywords ? (Array.isArray(q.keywords) ? q.keywords.join(', ') : q.keywords) : '',
+        embedType: q.embedType || 'code',
+        codeSnippet: q.codeSnippet || '',
+        embedUrl: q.embedUrl || ''
+      };
+    }));
     setShowFormModal(true);
   };
 
@@ -161,9 +170,7 @@ const CreatorDashboard = () => {
             ...base,
             embedType: q.embedType || 'code',
             codeSnippet: q.codeSnippet || '',
-            embedUrl: q.embedUrl || '',
-            options: q.options.map(opt => opt.trim() || 'Option'),
-            correctAnswer: parseInt(q.correctAnswer) || 0
+            embedUrl: q.embedUrl || ''
           };
         }
         return base;
@@ -190,7 +197,7 @@ const CreatorDashboard = () => {
     } else if (type === 'embedded') {
       setTestQuestions(prev => [
         ...prev,
-        { type: 'embedded', text: '', embedType: 'code', codeSnippet: `// Enter sample code here\nconst express = require('express');`, options: ['', '', '', ''], correctAnswer: 0 }
+        { type: 'embedded', text: '', embedType: 'code', codeSnippet: `// Enter sample code here\nconst express = require('express');` }
       ]);
     } else {
       setTestQuestions(prev => [
@@ -205,7 +212,20 @@ const CreatorDashboard = () => {
   };
 
   const handleQuestionChange = (idx, field, val) => {
-    setTestQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: val } : q));
+    setTestQuestions(prev => prev.map((q, i) => {
+      if (i !== idx) return q;
+      const updated = { ...q, [field]: val };
+      if (field === 'type') {
+        if (val === 'mcq' && (!updated.options || updated.options.length === 0)) {
+          updated.options = ['', '', '', ''];
+          updated.correctAnswer = 0;
+        }
+        if (val === 'embedded' && !updated.codeSnippet) {
+          updated.codeSnippet = '// Enter sample code here\nconst express = require("express");';
+        }
+      }
+      return updated;
+    }));
   };
 
   const handleOptionChange = (qIdx, optIdx, val) => {
@@ -361,7 +381,7 @@ const CreatorDashboard = () => {
         </div>
 
         {/* Motivational Card */}
-        <div className="mt-6 mb-6">
+        <div className="mt-6 mb-4">
           <div className="bg-[#fcfaff] rounded-3xl p-5 border border-purple-100/50 flex flex-col relative overflow-hidden">
             <span className="text-[#a57fc9] text-4xl font-serif absolute -top-1 left-2 opacity-25">“</span>
             <p className="text-[#402068] font-bold text-xs leading-snug mb-1 font-display relative z-10">
@@ -381,6 +401,17 @@ const CreatorDashboard = () => {
           </div>
         </div>
 
+        {/* Sidebar Logout */}
+        <div className="pt-4 border-t border-gray-100">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full py-3 px-4 rounded-2xl hover:bg-red-50 text-gray-700 hover:text-red-600 transition-all font-semibold cursor-pointer group"
+          >
+            <LogOut className="w-5 h-5 text-gray-400 group-hover:text-red-500 transition-colors" />
+            <span>Logout</span>
+          </button>
+        </div>
+
       </aside>
 
       {/* 2. MAIN HEADER & CANVAS */}
@@ -397,16 +428,35 @@ const CreatorDashboard = () => {
               <Bell className="w-6 h-6" />
             </button>
 
-            {/* Profile badge */}
-            <div className="flex items-center gap-3 pl-3 pr-2 py-1.5 bg-white/10 rounded-2xl text-white border border-white/10">
-              <div className="w-8 h-8 rounded-full bg-pink-100 text-[#e54e73] font-display font-extrabold text-sm flex items-center justify-center shadow-inner">
-                {user?.name?.[0]}
-              </div>
-              <div className="flex flex-col text-left">
-                <span className="font-bold text-sm tracking-wide leading-tight">{user?.name}</span>
-                <span className="text-[10px] text-pink-100 font-medium leading-none">{user?.title}</span>
-              </div>
-              <ChevronDown className="w-4 h-4 text-pink-100 ml-1" />
+            {/* Profile Dropdown Trigger */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="flex items-center gap-3 pl-3 pr-2 py-1.5 bg-white/10 hover:bg-white/25 rounded-2xl transition-all cursor-pointer text-white border border-white/10"
+              >
+                <div className="w-8 h-8 rounded-full bg-pink-100 text-[#e54e73] font-display font-extrabold text-sm flex items-center justify-center border border-white/20 shadow-inner">
+                  {user?.name?.[0] || 'C'}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="font-bold text-sm tracking-wide leading-tight">{user?.name || 'Charan'}</span>
+                  <span className="text-[10px] text-pink-100 font-medium leading-none">{user?.title || 'Course Creator'}</span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-pink-100 ml-1" />
+              </button>
+
+              {/* Profile Dropdown */}
+              {showProfileDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-30 animate-fade-in">
+                  <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-100 font-bold uppercase tracking-wider">User Options</div>
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2 font-semibold cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 text-red-500" />
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </header>
@@ -680,7 +730,13 @@ const CreatorDashboard = () => {
                         <td className="py-3.5 px-4 text-center text-gray-500">{test.duration} mins</td>
                         <td className="py-3.5 px-4 text-center text-gray-500">
                           <div className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.2em]">
-                            {Array.from(new Set(test.questions?.map(q => q.type))).map((type, idx) => (
+                            {Array.from(new Set(test.questions?.map(q => {
+                              let t = q.type || 'mcq';
+                              if (t === 'embedded' && (!q.codeSnippet || q.codeSnippet.trim() === '') && q.options && q.options.length > 0) {
+                                t = 'mcq';
+                              }
+                              return t;
+                            }))).map((type, idx) => (
                               <span key={idx} className={`px-2 py-1 rounded-full ${type === 'mcq' ? 'bg-purple-100 text-purple-700' : type === 'short_ans' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'}`}>
                                 {type === 'mcq' ? 'MCQ' : type === 'short_ans' ? 'Short' : 'Embed'}
                               </span>
@@ -1114,44 +1170,12 @@ const CreatorDashboard = () => {
                           <div className="flex flex-col gap-1">
                             <label className="text-[10px] font-bold text-gray-400 uppercase">Embedded Code Snippet:</label>
                             <textarea 
-                              rows="3"
+                              rows="4"
                               placeholder="// Code block to display to student..."
                               value={q.codeSnippet || ''}
                               onChange={(e) => handleQuestionChange(qIdx, 'codeSnippet', e.target.value)}
-                              className="w-full py-2 px-3 bg-gray-900 border border-gray-800 text-purple-200 rounded-xl text-xs font-mono"
+                              className="w-full py-2.5 px-3 bg-gray-900 border border-gray-800 text-purple-200 rounded-xl text-xs font-mono"
                             />
-                          </div>
-
-                          {/* Multiple Choice Options for Embedded Question */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                            {(q.options || ['', '', '', '']).map((opt, optIdx) => (
-                              <div key={optIdx} className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-gray-400 shrink-0">Option {String.fromCharCode(65 + optIdx)}</span>
-                                <input 
-                                  type="text" 
-                                  required
-                                  placeholder={`Choice for embedded code...`} 
-                                  value={opt}
-                                  onChange={(e) => handleOptionChange(qIdx, optIdx, e.target.value)}
-                                  className="w-full py-1.5 px-3 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none"
-                                />
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="flex items-center gap-3">
-                            <span className="text-[10px] font-bold text-gray-400">Correct Choice:</span>
-                            <select 
-                              value={q.correctAnswer}
-                              onChange={(e) => handleQuestionChange(qIdx, 'correctAnswer', parseInt(e.target.value))}
-                              className="py-1 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700"
-                            >
-                              {(q.options || ['', '', '', '']).map((_, optIdx) => (
-                                <option key={optIdx} value={optIdx}>
-                                  Option {String.fromCharCode(65 + optIdx)}
-                                </option>
-                              ))}
-                            </select>
                           </div>
                         </div>
                       )}
@@ -1219,9 +1243,11 @@ const CreatorDashboard = () => {
                     </pre>
                   )}
 
-                  {q.type === 'short_ans' ? (
+                  {q.type === 'short_ans' || q.type === 'embedded' ? (
                     <div className="bg-white p-3 rounded-xl border border-gray-200 text-xs italic text-gray-500">
-                      Model Key: {q.sampleAnswer || 'Sample short answer explanation.'}
+                      {q.type === 'short_ans' 
+                        ? `Model Key: ${q.sampleAnswer || 'Sample short answer explanation.'}`
+                        : 'Interactive Code Response'}
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
