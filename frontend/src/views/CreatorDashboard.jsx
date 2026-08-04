@@ -332,7 +332,6 @@ const CreatorDashboard = () => {
               { name: 'Cohort', icon: Users },
               { name: 'Results', icon: FileSpreadsheet },
               { name: 'Courses', icon: ShieldCheck, action: () => navigate('/creator/course') },
-              { name: 'Courses', icon: ShieldCheck },
               { name: 'Settings', icon: SettingsIcon }
             ].map((item) => {
               const Icon = item.icon;
