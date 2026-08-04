@@ -1,17 +1,99 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import { useNavigate } from 'react-router-dom';
-import { Bell, ChevronDown, LayoutDashboard, FileText, Users, Settings as SettingsIcon, LogOut, Search, Plus, Eye, Edit2, Trash2, ShieldCheck, Key, ShieldAlert, BarChart3, Award, UserPlus, FolderPlus, ArrowRight } from 'lucide-react';
+import { Bell, ChevronDown, LayoutDashboard, FileText, Users, Settings as SettingsIcon, LogOut, Search, Plus, Eye, Edit2, Trash2, ShieldCheck, Key, ShieldAlert, BarChart3, Award, UserPlus, FolderPlus, ArrowRight, CheckCircle2, RotateCcw, X } from 'lucide-react';
+
+const DEFAULT_PERMISSIONS = [
+  {
+    role: 'Admin',
+    icon: 'A',
+    description: 'Full system & platform access',
+    color: 'bg-purple-100 text-purple-700',
+    rights: { read: true, write: true, execute: true, create: true, delete: true }
+  },
+  {
+    role: 'Course Creator',
+    icon: 'C',
+    description: 'Builds and manages tests & courses',
+    color: 'bg-pink-100 text-pink-700',
+    rights: { read: true, write: true, execute: false, create: true, delete: true }
+  },
+  {
+    role: 'Instructor',
+    icon: 'I',
+    description: 'Reviews cohorts and student results',
+    color: 'bg-blue-100 text-blue-700',
+    rights: { read: true, write: false, execute: true, create: true, delete: false }
+  },
+  {
+    role: 'Student',
+    icon: 'S',
+    description: 'Takes assigned tests and views results',
+    color: 'bg-emerald-100 text-emerald-700',
+    rights: { read: true, write: false, execute: true, create: false, delete: false }
+  }
+];
+
+const PERMISSION_COLUMNS = [
+  { key: 'read', label: 'READ', desc: 'View portal content' },
+  { key: 'write', label: 'WRITE', desc: 'Edit records & content' },
+  { key: 'execute', label: 'EXECUTE', desc: 'Attempt & run tests' },
+  { key: 'create', label: 'CREATE', desc: 'Build new tests/cohorts' },
+  { key: 'delete', label: 'DELETE', desc: 'Remove data items' }
+];
 
 const AdminDashboard = () => {
   const { user, logout, studentResults, cohorts } = useApp();
   const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState('Dashboard');
   const [searchUser, setSearchUser] = useState('');
+  const [rolePermissions, setRolePermissions] = useState(DEFAULT_PERMISSIONS);
+  const [saveToast, setSaveToast] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const handleTogglePermission = (roleName, permKey) => {
+    setRolePermissions(prev =>
+      prev.map(r => {
+        if (r.role === roleName) {
+          return {
+            ...r,
+            rights: {
+              ...r.rights,
+              [permKey]: !r.rights[permKey]
+            }
+          };
+        }
+        return r;
+      })
+    );
+  };
+
+  const handleToggleRow = (roleName) => {
+    setRolePermissions(prev =>
+      prev.map(r => {
+        if (r.role === roleName) {
+          const allChecked = Object.values(r.rights).every(Boolean);
+          const newRights = {};
+          Object.keys(r.rights).forEach(k => { newRights[k] = !allChecked; });
+          return { ...r, rights: newRights };
+        }
+        return r;
+      })
+    );
+  };
+
+  const handleSavePermissions = () => {
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 3000);
+  };
+
+  const handleResetPermissions = () => {
+    setRolePermissions(DEFAULT_PERMISSIONS);
+    setSaveToast(false);
   };
 
   const filteredStudents = studentResults.filter(student =>
@@ -153,39 +235,113 @@ const AdminDashboard = () => {
         )}
 
         {activeMenu === 'Roles & Permissions' && (
-          <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100">
+          <section className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 animate-fade-in">
+            {saveToast && (
+              <div className="mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center justify-between animate-fade-in">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span>Roles & Permissions matrix updated and saved successfully!</span>
+                </div>
+                <button onClick={() => setSaveToast(false)} className="text-emerald-600 hover:text-emerald-900 cursor-pointer">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
               <div>
-                <h3 className="font-display font-extrabold text-xl text-slate-900">Roles & Permissions</h3>
-                <p className="text-sm text-gray-500 mt-1">Control role access across the app.</p>
+                <h3 className="font-display font-extrabold text-xl text-slate-900">Roles & Permissions Matrix</h3>
+                <p className="text-sm text-gray-500 mt-1">Control role access across the application using interactive checkboxes.</p>
               </div>
-              <button className="rounded-2xl bg-purple-900 text-white px-5 py-3 text-sm font-bold flex items-center gap-2">
-                <Plus className="w-4 h-4" /> Save Changes
-              </button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={handleResetPermissions}
+                  className="rounded-2xl border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset
+                </button>
+                <button 
+                  onClick={handleSavePermissions}
+                  className="rounded-2xl bg-purple-900 hover:bg-purple-950 text-white px-5 py-2.5 text-xs font-bold flex items-center gap-2 shadow-md shadow-purple-900/20 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Save Changes
+                </button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {[
-                { label: 'Admin', description: 'Full system access', settings: ['Read', 'Write', 'Execute', 'Create'] },
-                { label: 'Course Creator', description: 'Builds and manages tests', settings: ['Read', 'Write', 'Create'] },
-                { label: 'Instructor', description: 'Reviews cohorts and results', settings: ['Read', 'Execute'] },
-                { label: 'Student', description: 'Takes assigned tests', settings: ['Read', 'Execute'] }
-              ].map((role) => (
-                <div key={role.label} className="rounded-3xl border border-gray-200 p-6 bg-slate-50">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-11 h-11 rounded-3xl bg-purple-100 grid place-items-center text-purple-700 font-bold">{role.label[0]}</div>
-                    <div>
-                      <h4 className="font-bold text-slate-900">{role.label}</h4>
-                      <p className="text-sm text-gray-500">{role.description}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-4 gap-3 text-xs text-gray-500 uppercase tracking-[0.2em] font-bold">
-                    {['Read', 'Write', 'Execute', 'Create'].map((perm) => (
-                      <span key={perm} className={role.settings.includes(perm) ? 'text-purple-700' : 'text-gray-300'}>{perm}</span>
+            {/* Matrix Table */}
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-xs bg-white">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 text-white text-xs font-bold uppercase tracking-wider">
+                    <th className="py-4 px-6 min-w-[220px]">Role Name & Description</th>
+                    {PERMISSION_COLUMNS.map((perm) => (
+                      <th key={perm.key} className="py-4 px-4 text-center min-w-[100px]">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span>{perm.label}</span>
+                          <span className="text-[9px] text-purple-200 font-normal lowercase">{perm.desc}</span>
+                        </div>
+                      </th>
                     ))}
-                  </div>
-                </div>
-              ))}
+                    <th className="py-4 px-4 text-center min-w-[100px]">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-sm">
+                  {rolePermissions.map((roleItem) => (
+                    <tr key={roleItem.role} className="hover:bg-purple-50/40 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-2xl grid place-items-center font-bold text-sm ${roleItem.color}`}>
+                            {roleItem.icon}
+                          </div>
+                          <div>
+                            <h4 className="font-extrabold text-slate-900 text-sm">{roleItem.role}</h4>
+                            <p className="text-xs text-gray-500 font-normal">{roleItem.description}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {PERMISSION_COLUMNS.map((perm) => {
+                        const isChecked = !!roleItem.rights[perm.key];
+                        return (
+                          <td key={perm.key} className="py-4 px-4 text-center">
+                            <label className="inline-flex items-center justify-center cursor-pointer p-2 rounded-xl hover:bg-purple-100/50 transition-all">
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => handleTogglePermission(roleItem.role, perm.key)}
+                                className="w-5 h-5 rounded-md border-2 border-gray-300 text-purple-700 focus:ring-purple-500 cursor-pointer accent-purple-700 transition-all"
+                              />
+                            </label>
+                          </td>
+                        );
+                      })}
+
+                      <td className="py-4 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRow(roleItem.role)}
+                          className="text-xs font-bold text-purple-700 hover:text-purple-900 hover:underline px-2.5 py-1 rounded-lg hover:bg-purple-50 transition-colors cursor-pointer"
+                        >
+                          Toggle All
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Bottom Legend */}
+            <div className="mt-6 p-4 rounded-2xl bg-slate-50 border border-gray-200 flex flex-wrap items-center justify-between gap-4 text-xs text-gray-600">
+              <div className="flex items-center gap-4">
+                <span className="font-bold text-slate-800">Matrix Legend:</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-700"></span> Checked = Enabled</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-gray-300"></span> Unchecked = Disabled</span>
+              </div>
+              <div className="text-gray-500 font-medium">
+                Permissions configured in matrix format affect all user groups dynamically.
+              </div>
             </div>
           </section>
         )}

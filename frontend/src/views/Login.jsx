@@ -41,7 +41,7 @@ const Login = () => {
         targetRole = 'admin';
       }
 
-      await login(username.trim(), password);
+      await login(username.trim(), password, targetRole);
 
       if (targetRole === 'admin') {
         navigate('/admin');
@@ -71,7 +71,7 @@ const Login = () => {
       setUsername(displayName);
       setPassword('password123');
 
-      await login(demoUser, 'password123');
+      await login(demoUser, 'password123', role);
 
       if (role === 'admin') {
         navigate('/admin');
@@ -84,6 +84,16 @@ const Login = () => {
       setError('Quick login failed.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRoleTabChange = (role) => {
+    setSelectedRole(role);
+    setError('');
+    if (username === 'Charan' || username.startsWith('Charan (')) {
+      if (role === 'admin') setUsername('Charan (Admin)');
+      else if (role === 'creator') setUsername('Charan (Course Creator)');
+      else setUsername('Charan (Employee)');
     }
   };
 
@@ -116,7 +126,7 @@ const Login = () => {
         <div className="w-full bg-gray-100 p-1.5 rounded-2xl grid grid-cols-3 gap-1 mb-6 border border-gray-200/60">
           <button 
             type="button"
-            onClick={() => setSelectedRole('employee')}
+            onClick={() => handleRoleTabChange('employee')}
             className={`py-2 px-2 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               selectedRole === 'employee'
                 ? 'bg-white text-[#5e328c] shadow-md shadow-purple-100'
@@ -129,7 +139,7 @@ const Login = () => {
           
           <button 
             type="button"
-            onClick={() => setSelectedRole('admin')}
+            onClick={() => handleRoleTabChange('admin')}
             className={`py-2 px-2 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               selectedRole === 'admin'
                 ? 'bg-white text-[#5e328c] shadow-md shadow-purple-100'
@@ -142,7 +152,7 @@ const Login = () => {
 
           <button 
             type="button"
-            onClick={() => setSelectedRole('creator')}
+            onClick={() => handleRoleTabChange('creator')}
             className={`py-2 px-2 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
               selectedRole === 'creator'
                 ? 'bg-white text-[#e54e73] shadow-md shadow-pink-100'

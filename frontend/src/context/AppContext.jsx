@@ -308,7 +308,7 @@ export const AppProvider = ({ children }) => {
   }, [charanCompletedTests]);
 
   // Auth Login (Connected to FastAPI / Local Fallback)
-  const login = async (identifier, password) => {
+  const login = async (identifier, password, roleHint) => {
     try {
       // 1. Try hitting the real FastAPI Auth Endpoint
       const response = await fetch('http://localhost:8000/auth/login', {
@@ -319,10 +319,12 @@ export const AppProvider = ({ children }) => {
 
       if (response.ok) {
         const data = await response.json();
+        const serverRole = data.user?.role?.toLowerCase() || 'student';
+        const finalRole = roleHint || serverRole;
         const userData = {
           name: data.user?.username || identifier,
-          role: data.user?.role?.toLowerCase() || 'student',
-          title: data.user?.role || 'Learner',
+          role: finalRole,
+          title: finalRole === 'admin' ? 'Administrator' : finalRole === 'creator' ? 'Course Creator' : 'Employee',
           token: data.access_token
         };
         setUser(userData);
@@ -334,20 +336,23 @@ export const AppProvider = ({ children }) => {
     } catch (err) {
       // 2. Local Fallback for Demo Testing
       const lower = identifier ? identifier.toLowerCase().trim() : '';
-      if (lower === 'admin') {
-        const userData = { name: 'Charan', role: 'admin', title: 'Administrator' };
-        setUser(userData);
-        return userData;
-      } else if (lower === 'creator' || lower === 'teacher') {
-        const userData = { name: 'Charan', role: 'creator', title: 'Course Creator' };
-        setUser(userData);
-        return userData;
-      } else if (lower === 'student' || lower === 'charan' || lower) {
-        const userData = { name: identifier || 'Charan', role: 'student', title: 'Employee' };
-        setUser(userData);
-        return userData;
+      let role = roleHint;
+      if (!role) {
+        if (lower === 'admin') role = 'admin';
+        else if (lower === 'creator' || lower === 'teacher') role = 'creator';
+        else role = 'student';
       }
-      throw err;
+
+      const title = role === 'admin' ? 'Administrator' : role === 'creator' ? 'Course Creator' : 'Employee';
+      const defaultName = role === 'admin' ? 'Charan (Admin)' : role === 'creator' ? 'Charan (Course Creator)' : 'Charan';
+
+      const userData = {
+        name: (identifier && !['charan', 'admin', 'creator'].includes(lower)) ? identifier : defaultName,
+        role: role,
+        title: title
+      };
+      setUser(userData);
+      return userData;
     }
   };
 
