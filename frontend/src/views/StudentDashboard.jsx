@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Bell, ChevronDown, BookOpen, CheckSquare, BarChart3, LogOut, FileText, Clock, 
   Play, Home, ClipboardList, GraduationCap, ArrowRight, Award, CheckCircle2, 
-  XCircle, RotateCcw, Eye, X, Sparkles, TrendingUp
+  XCircle, RotateCcw, Eye, X, Sparkles, TrendingUp, Search, Filter, 
+  SlidersHorizontal, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  Cpu, Layers, HardDrive, RefreshCw
 } from 'lucide-react';
 
 const StudentDashboard = () => {
@@ -26,6 +28,16 @@ const StudentDashboard = () => {
 
   // Modal state for viewing test report
   const [selectedReport, setSelectedReport] = useState(null);
+
+  // Search & Filter state for Reports page
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [scoreFilter, setScoreFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+
+  // OS Paging Concept State (Page Table management)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const [notifications] = useState([
     { id: 1, text: "A new test 'Python Basics' has been published.", unread: true },
@@ -90,7 +102,7 @@ const StudentDashboard = () => {
     }
   ];
 
-  // Attended Tests History & Report Data
+  // Expanded Attended Tests History & Report Data for OS Concept Paging
   const attendedTestsHistory = [
     {
       id: 'att-1',
@@ -155,8 +167,136 @@ const StudentDashboard = () => {
       correctQs: 15,
       wrongQs: 5,
       accuracy: '78%'
+    },
+    {
+      id: 'att-5',
+      testId: 'python-ds',
+      testName: 'Python Data Structures & Algorithms',
+      attemptedOn: '12 Jul 2026, 15:10',
+      highestPercentage: 92,
+      lastScore: '23/25',
+      attemptsTaken: 2,
+      attemptsMax: 5,
+      attemptsLeft: 3,
+      status: 'Passed',
+      timeSpent: '38 mins',
+      correctQs: 23,
+      wrongQs: 2,
+      accuracy: '92%'
+    },
+    {
+      id: 'att-6',
+      testId: 'tailwind-css',
+      testName: 'Tailwind CSS & Responsive Layouts',
+      attemptedOn: '05 Jul 2026, 13:00',
+      highestPercentage: 88,
+      lastScore: '22/25',
+      attemptsTaken: 1,
+      attemptsMax: 5,
+      attemptsLeft: 4,
+      status: 'Passed',
+      timeSpent: '22 mins',
+      correctQs: 22,
+      wrongQs: 3,
+      accuracy: '88%'
+    },
+    {
+      id: 'att-7',
+      testId: 'node-express',
+      testName: 'Node.js & Express RESTful APIs',
+      attemptedOn: '28 Jun 2026, 17:30',
+      highestPercentage: 68,
+      lastScore: '13/20',
+      attemptsTaken: 3,
+      attemptsMax: 5,
+      attemptsLeft: 2,
+      status: 'Needs Review',
+      timeSpent: '35 mins',
+      correctQs: 13,
+      wrongQs: 7,
+      accuracy: '68%'
+    },
+    {
+      id: 'att-8',
+      testId: 'docker-cloud',
+      testName: 'Docker Containers & Cloud Deployment',
+      attemptedOn: '20 Jun 2026, 10:45',
+      highestPercentage: 96,
+      lastScore: '24/25',
+      attemptsTaken: 1,
+      attemptsMax: 5,
+      attemptsLeft: 4,
+      status: 'Passed',
+      timeSpent: '26 mins',
+      correctQs: 24,
+      wrongQs: 1,
+      accuracy: '96%'
+    },
+    {
+      id: 'att-9',
+      testId: 'cyber-sec',
+      testName: 'Cybersecurity & Web Vulnerabilities',
+      attemptedOn: '14 Jun 2026, 11:00',
+      highestPercentage: 74,
+      lastScore: '14/20',
+      attemptsTaken: 2,
+      attemptsMax: 5,
+      attemptsLeft: 3,
+      status: 'Passed',
+      timeSpent: '30 mins',
+      correctQs: 14,
+      wrongQs: 6,
+      accuracy: '74%'
+    },
+    {
+      id: 'att-10',
+      testId: 'system-design',
+      testName: 'System Architecture & Microservices',
+      attemptedOn: '01 Jun 2026, 16:15',
+      highestPercentage: 94,
+      lastScore: '19/20',
+      attemptsTaken: 2,
+      attemptsMax: 5,
+      attemptsLeft: 3,
+      status: 'Passed',
+      timeSpent: '40 mins',
+      correctQs: 19,
+      wrongQs: 1,
+      accuracy: '94%'
     }
   ];
+
+  // Filtering, Sorting, and OS Paging Calculations for Dedicated Reports Page
+  const filteredReports = attendedTestsHistory.filter(item => {
+    const matchesSearch = item.testName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'All' ? true : item.status === statusFilter;
+    let matchesScore = true;
+    if (scoreFilter === '90+') matchesScore = item.highestPercentage >= 90;
+    else if (scoreFilter === '80-89') matchesScore = item.highestPercentage >= 80 && item.highestPercentage < 90;
+    else if (scoreFilter === '<80') matchesScore = item.highestPercentage < 80;
+
+    return matchesSearch && matchesStatus && matchesScore;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.attemptedOn) - new Date(a.attemptedOn);
+    if (sortBy === 'highestScore') return b.highestPercentage - a.highestPercentage;
+    if (sortBy === 'lowestScore') return a.highestPercentage - b.highestPercentage;
+    if (sortBy === 'name') return a.testName.localeCompare(b.testName);
+    return 0;
+  });
+
+  const totalItems = filteredReports.length;
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
+  const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginatedReports = filteredReports.slice(startIndex, startIndex + pageSize);
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('All');
+    setScoreFilter('All');
+    setSortBy('newest');
+    setCurrentPage(1);
+  };
 
   const handleLogout = () => {
     logout();
@@ -191,7 +331,7 @@ const StudentDashboard = () => {
             <span className="font-display font-extrabold text-2xl text-gray-800 tracking-tight leading-none mt-1">OneTest</span>
           </div>
 
-          {/* Sidebar Navigation Links - 4 Required Options */}
+          {/* Sidebar Navigation Links */}
           <nav className="flex flex-col gap-2 mt-6">
             {[
               { id: 'Home', label: 'Home', icon: Home },
@@ -300,7 +440,7 @@ const StudentDashboard = () => {
                 <ChevronDown className="w-4 h-4 text-pink-100 ml-1" />
               </button>
 
-              {/* Profile Dropdown (Only Place for Logout) */}
+              {/* Profile Dropdown */}
               {showProfileDropdown && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-30 animate-fade-in">
                   <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-100 font-bold uppercase tracking-wider">User Options</div>
@@ -321,7 +461,7 @@ const StudentDashboard = () => {
         {/* Content Container */}
         <div className="flex-1 p-8 flex flex-col gap-8">
           
-          {/* VIEW 1: HOME / MAIN DASHBOARD (50/50 HORIZONTAL DIVISION) */}
+          {/* VIEW 1: HOME / MAIN DASHBOARD */}
           {(activeMenu === 'Home' || activeMenu === 'Dashboard') && (
             <>
               {/* Welcome Greeting Banner */}
@@ -456,80 +596,83 @@ const StudentDashboard = () => {
 
               </div>
 
-              {/* LOWER HALF: TABULAR FORMAT FOR ATTENDED TESTS & REPORTS */}
-              <div className="bg-white rounded-3xl p-6 shadow-md border border-purple-100/30 flex flex-col gap-4">
+              {/* LOWER HALF: 5 REPORT CARDS WITH "SHOW MORE" ACTION */}
+              <div className="bg-white rounded-3xl p-6 shadow-md border border-purple-100/30 flex flex-col gap-5">
                 <div className="flex justify-between items-center border-b border-gray-100 pb-4">
                   <div>
-                    <h3 className="font-display font-extrabold text-xl text-gray-800">Attended Tests History</h3>
-                    <p className="text-xs text-gray-400 font-medium mt-0.5">Comprehensive history of completed tests, highest percentage scores, attempt metrics, and individual reports.</p>
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-[#5e328c]" />
+                      <h3 className="font-display font-extrabold text-xl text-gray-800">Recent Test Reports</h3>
+                    </div>
+                    <p className="text-xs text-gray-400 font-medium mt-0.5">Top 5 recent assessment reports. Click 'Show More' for the full searchable report table.</p>
                   </div>
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3.5 py-1.5 rounded-full">
-                    {attendedTestsHistory.length} Attended Tests
-                  </span>
+                  
+                  {/* Show More Header Button */}
+                  <button
+                    onClick={() => setActiveMenu('Reports')}
+                    className="flex items-center gap-1.5 text-xs font-extrabold text-[#5e328c] bg-purple-50 hover:bg-purple-100 border border-purple-200 px-4 py-2 rounded-full transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span>Show More Reports</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                {/* Table Format */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-[11px] font-extrabold text-gray-400 uppercase bg-gray-50/70">
-                        <th className="py-3.5 px-4 rounded-l-xl">Test Name</th>
-                        <th className="py-3.5 px-4">Attempted Date</th>
-                        <th className="py-3.5 px-4 text-center">Highest Percentage</th>
-                        <th className="py-3.5 px-4 text-center">Attempts Taken</th>
-                        <th className="py-3.5 px-4 text-center">Attempts Left</th>
-                        <th className="py-3.5 px-4 text-center rounded-r-xl">Action / Report</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50 text-xs text-gray-700 font-medium">
-                      {attendedTestsHistory.map((item) => (
-                        <tr key={item.id} className="hover:bg-purple-50/40 transition-colors">
-                          {/* 1. Test Name */}
-                          <td className="py-3.5 px-4 font-bold text-gray-800">
-                            <div className="flex flex-col">
-                              <span className="text-sm text-[#402068]">{item.testName}</span>
-                              <span className="text-[10px] text-gray-400 font-normal">Last Score: {item.lastScore} ({item.accuracy})</span>
-                            </div>
-                          </td>
+                {/* 5 Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {attendedTestsHistory.slice(0, 5).map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="bg-gray-50/80 hover:bg-purple-50/40 border border-gray-200/80 hover:border-purple-200 rounded-2xl p-4 flex flex-col justify-between transition-all hover:shadow-md group relative"
+                    >
+                      <div>
+                        {/* Card Header & Badge */}
+                        <div className="flex justify-between items-start gap-2 mb-2">
+                          <span className="text-[10px] font-extrabold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full shrink-0">
+                            {item.highestPercentage}% Score
+                          </span>
+                          <span className="text-[9px] font-semibold text-gray-400 truncate">
+                            {item.attemptedOn.split(',')[0]}
+                          </span>
+                        </div>
 
-                          {/* 2. When Attempted */}
-                          <td className="py-3.5 px-4 text-gray-500 font-semibold">{item.attemptedOn}</td>
+                        <h4 className="font-bold text-xs text-gray-800 line-clamp-2 mb-2 group-hover:text-[#5e328c] transition-colors">
+                          {item.testName}
+                        </h4>
 
-                          {/* 3. Highest Percentage */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="inline-block py-1 px-3.5 rounded-full font-extrabold text-xs bg-emerald-50 text-emerald-700 border border-emerald-100">
-                              {item.highestPercentage}%
-                            </span>
-                          </td>
+                        {/* Metric Row */}
+                        <div className="bg-white p-2.5 rounded-xl border border-gray-100 text-center grid grid-cols-2 gap-2 mb-3">
+                          <div>
+                            <span className="text-[8px] text-gray-400 uppercase font-bold block">Score</span>
+                            <span className="text-xs font-black text-purple-700">{item.lastScore}</span>
+                          </div>
+                          <div>
+                            <span className="text-[8px] text-gray-400 uppercase font-bold block">Time</span>
+                            <span className="text-xs font-bold text-gray-700">{item.timeSpent}</span>
+                          </div>
+                        </div>
+                      </div>
 
-                          {/* 4. Attempts Taken */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="inline-block py-1 px-3 rounded-full font-bold text-xs bg-purple-50 text-purple-800">
-                              {item.attemptsTaken} {item.attemptsTaken === 1 ? 'Attempt' : 'Attempts'}
-                            </span>
-                          </td>
+                      {/* Card Action */}
+                      <button 
+                        onClick={() => setSelectedReport(item)}
+                        className="w-full py-1.5 px-3 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-full text-[11px] font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer mt-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        View Report
+                      </button>
+                    </div>
+                  ))}
+                </div>
 
-                          {/* 5. Attempts Left */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="inline-block py-1 px-3 rounded-full font-bold text-xs bg-amber-50 text-amber-700">
-                              {item.attemptsLeft} Left
-                            </span>
-                          </td>
-
-                          {/* 6. Action Column: Clicking takes to test report */}
-                          <td className="py-3.5 px-4 text-center">
-                            <button 
-                              onClick={() => setSelectedReport(item)}
-                              className="py-1.5 px-4 bg-purple-900 hover:bg-purple-800 text-white rounded-full text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              View Report
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {/* Show More Footer Bar */}
+                <div className="flex justify-center border-t border-gray-100 pt-3">
+                  <button 
+                    onClick={() => setActiveMenu('Reports')}
+                    className="flex items-center gap-2 text-xs font-extrabold text-white bg-[#5e328c] hover:bg-purple-900 px-6 py-2.5 rounded-full transition-all shadow-md cursor-pointer hover:scale-102"
+                  >
+                    <span>Show More Tests ({attendedTestsHistory.length - 5} More Active)</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </>
@@ -540,8 +683,8 @@ const StudentDashboard = () => {
             <div className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
               <div className="flex justify-between items-center border-b border-gray-100 pb-4">
                 <div>
-                  <h2 className="font-display font-extrabold text-xl text-gray-800">Available & Upcoming Tests</h2>
-                  <p className="text-xs text-gray-400 font-medium mt-0.5">Explore tests assigned to your curriculum or start new attempts.</p>
+                  <h2 className="font-display font-extrabold text-xl text-gray-800">Active & Scheduled Assessments</h2>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Explore active assessments assigned to your curriculum or start new attempts.</p>
                 </div>
               </div>
 
@@ -619,52 +762,316 @@ const StudentDashboard = () => {
             </div>
           )}
 
-          {/* VIEW 4: REPORTS PAGE */}
+          {/* VIEW 4: DEDICATED REPORTS PAGE - OS CONCEPT PAGINATED TABLE WITH SEARCH & FILTER */}
           {activeMenu === 'Reports' && (
             <div className="bg-white rounded-3xl p-8 shadow-md border border-purple-100/30 flex flex-col gap-6">
-              <div className="border-b border-gray-100 pb-4">
-                <h2 className="font-display font-extrabold text-xl text-gray-800">Performance & Test Reports</h2>
-                <p className="text-xs text-gray-400 font-medium mt-0.5">Click any test below to inspect full analytical feedback and score breakdown.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {attendedTestsHistory.map(item => (
-                  <div key={item.id} className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex flex-col justify-between">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-bold text-base text-gray-800">{item.testName}</h3>
-                        <span className="text-xs font-extrabold bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
-                          {item.highestPercentage}% Highest
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mb-4">Attempted: {item.attemptedOn} • {item.attemptsTaken} Attempts Taken</p>
-
-                      <div className="grid grid-cols-3 gap-3 bg-white p-3 rounded-xl border border-gray-100 mb-4 text-center">
-                        <div>
-                          <span className="text-[9px] text-gray-400 uppercase font-bold block">Score</span>
-                          <span className="text-sm font-extrabold text-purple-700">{item.lastScore}</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] text-gray-400 uppercase font-bold block">Time Spent</span>
-                          <span className="text-sm font-extrabold text-gray-700">{item.timeSpent}</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] text-gray-400 uppercase font-bold block">Attempts Left</span>
-                          <span className="text-sm font-extrabold text-amber-600">{item.attemptsLeft}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={() => setSelectedReport(item)}
-                      className="w-full py-2.5 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-full text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View Full Analysis Report
-                    </button>
+              
+              {/* Reports Page Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-6 h-6 text-[#5e328c]" />
+                    <h2 className="font-display font-extrabold text-2xl text-gray-800">Performance & Test Reports</h2>
                   </div>
-                ))}
+                  <p className="text-xs text-gray-400 font-medium mt-1">Search, filter, and inspect detailed test analytics with paginated data tables.</p>
+                </div>
+
+                {/* Total Stats Pill */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-purple-900 bg-purple-50 border border-purple-200 px-4 py-2 rounded-full">
+                    Total Records: {attendedTestsHistory.length}
+                  </span>
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-full">
+                    Passed: {attendedTestsHistory.filter(r => r.status === 'Passed').length}
+                  </span>
+                </div>
               </div>
+
+              {/* SEARCH & FILTER CONTROLS BAR */}
+              <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-200/80 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+                
+                {/* Search Bar */}
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Search report by test name..."
+                    className="w-full bg-white border border-gray-200 pl-10 pr-4 py-2 rounded-xl text-xs text-gray-700 font-medium focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition-all"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => { setSearchTerm(''); setCurrentPage(1); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-bold cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Filter Dropdowns */}
+                <div className="flex flex-wrap items-center gap-3">
+                  
+                  {/* Status Filter */}
+                  <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-xl">
+                    <Filter className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-[11px] font-bold text-gray-500">Status:</span>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All</option>
+                      <option value="Passed">Passed</option>
+                      <option value="Needs Review">Needs Review</option>
+                    </select>
+                  </div>
+
+                  {/* Score Filter */}
+                  <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-xl">
+                    <SlidersHorizontal className="w-3.5 h-3.5 text-purple-600" />
+                    <span className="text-[11px] font-bold text-gray-500">Score:</span>
+                    <select
+                      value={scoreFilter}
+                      onChange={(e) => {
+                        setScoreFilter(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                      className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value="All">All Scores</option>
+                      <option value="90+">90%+ High</option>
+                      <option value="80-89">80% - 89% Good</option>
+                      <option value="<80">Below 80%</option>
+                    </select>
+                  </div>
+
+                  {/* Sort Dropdown */}
+                  <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-xl">
+                    <span className="text-[11px] font-bold text-gray-500">Sort:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value="newest">Latest Date</option>
+                      <option value="highestScore">Highest Score</option>
+                      <option value="lowestScore">Lowest Score</option>
+                      <option value="name">Name A-Z</option>
+                    </select>
+                  </div>
+
+                  {/* Page Size Selector */}
+                  <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-3 py-1.5 rounded-xl">
+                    <span className="text-[11px] font-bold text-gray-500">Rows / Page:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="bg-transparent text-xs font-bold text-gray-700 focus:outline-none cursor-pointer"
+                    >
+                      <option value={5}>5 / Page</option>
+                      <option value={10}>10 / Page</option>
+                      <option value={20}>20 / Page</option>
+                    </select>
+                  </div>
+
+                  {/* Clear Filters Button */}
+                  {(searchTerm || statusFilter !== 'All' || scoreFilter !== 'All' || sortBy !== 'newest') && (
+                    <button
+                      onClick={resetFilters}
+                      className="flex items-center gap-1 py-1.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+              </div>
+
+              {/* TABLE FORMAT FOR REPORTS */}
+              <div className="overflow-x-auto border border-gray-150 rounded-2xl shadow-xs">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 text-[11px] font-extrabold text-gray-500 uppercase bg-purple-50/60">
+                      <th className="py-3.5 px-4">Test Name & Details</th>
+                      <th className="py-3.5 px-4 text-center">Status</th>
+                      <th className="py-3.5 px-4 text-center">Score Ratio</th>
+                      <th className="py-3.5 px-4 text-center">Highest Score</th>
+                      <th className="py-3.5 px-4 text-center">Attempts Metrics</th>
+                      <th className="py-3.5 px-4 text-center">Time Spent</th>
+                      <th className="py-3.5 px-4 text-center">Action / Inspection</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-xs text-gray-700 font-medium">
+                    {paginatedReports.length > 0 ? (
+                      paginatedReports.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-purple-50/50 transition-colors">
+                          
+                          {/* Test Name & Date */}
+                          <td className="py-4 px-4 font-bold text-gray-800">
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono font-extrabold bg-purple-100 text-purple-900 px-2 py-0.5 rounded">
+                                  #{startIndex + idx + 1}
+                                </span>
+                                <span className="text-sm text-[#402068] font-display font-extrabold">{item.testName}</span>
+                              </div>
+                              <span className="text-[11px] text-gray-400 font-normal mt-0.5">Attempted on: {item.attemptedOn}</span>
+                            </div>
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-4 px-4 text-center">
+                            <span className={`inline-flex items-center gap-1 py-1 px-3 rounded-full text-xs font-extrabold ${
+                              item.status === 'Passed'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : 'bg-amber-50 text-amber-700 border border-amber-200'
+                            }`}>
+                              {item.status === 'Passed' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
+                              {item.status}
+                            </span>
+                          </td>
+
+                          {/* Score Ratio */}
+                          <td className="py-4 px-4 text-center font-extrabold text-purple-900 text-sm">
+                            {item.lastScore}
+                          </td>
+
+                          {/* Highest Percentage */}
+                          <td className="py-4 px-4 text-center">
+                            <span className={`inline-block py-1 px-3 rounded-full font-black text-xs ${
+                              item.highestPercentage >= 90
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : item.highestPercentage >= 80
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}>
+                              {item.highestPercentage}%
+                            </span>
+                          </td>
+
+                          {/* Attempt Metrics */}
+                          <td className="py-4 px-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg">
+                                {item.attemptsTaken} Taken
+                              </span>
+                              <span className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                                {item.attemptsLeft} Left
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Time Spent */}
+                          <td className="py-4 px-4 text-center font-semibold text-gray-600">
+                            {item.timeSpent}
+                          </td>
+
+                          {/* Action Button */}
+                          <td className="py-4 px-4 text-center">
+                            <button 
+                              onClick={() => setSelectedReport(item)}
+                              className="py-1.5 px-4 bg-[#e54e73] hover:bg-[#d03b60] text-white rounded-full text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View Report
+                            </button>
+                          </td>
+
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" className="py-10 text-center text-gray-400 font-semibold">
+                          No reports match your current search and filter criteria.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* OS MEMORY PAGINATION NAVIGATION CONTROLS BAR */}
+              <div className="bg-gray-50 border border-gray-200 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 font-mono">
+                
+                {/* Information Badge */}
+                <div className="text-xs text-gray-600 font-bold">
+                  Showing Page <span className="text-[#5e328c] font-black">{safeCurrentPage}</span> of <span className="text-[#5e328c] font-black">{totalPages}</span> | Entries <span className="text-gray-800">{totalItems > 0 ? startIndex + 1 : 0}</span> - <span className="text-gray-800">{Math.min(startIndex + pageSize, totalItems)}</span> of <span className="text-gray-800">{totalItems}</span>
+                </div>
+
+                {/* OS Page Frame Controls */}
+                <div className="flex items-center gap-1.5">
+                  
+                  {/* First Page */}
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={safeCurrentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-purple-50 disabled:opacity-40 disabled:hover:bg-white text-gray-700 transition-colors cursor-pointer"
+                    title="First Page Frame [Page 1]"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* Previous Page */}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={safeCurrentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-purple-50 disabled:opacity-40 disabled:hover:bg-white text-gray-700 transition-colors cursor-pointer"
+                    title="Previous Page Frame"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  {/* Page Frame Buttons */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        safeCurrentPage === pageNum
+                          ? 'bg-[#5e328c] text-white shadow-xs font-black scale-105'
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-purple-50'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  {/* Next Page */}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={safeCurrentPage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-purple-50 disabled:opacity-40 disabled:hover:bg-white text-gray-700 transition-colors cursor-pointer"
+                    title="Next Page Frame"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+
+                  {/* Last Page */}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={safeCurrentPage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-purple-50 disabled:opacity-40 disabled:hover:bg-white text-gray-700 transition-colors cursor-pointer"
+                    title="Last Page Frame [Page End]"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </button>
+
+                </div>
+
+              </div>
+
             </div>
           )}
 
@@ -757,3 +1164,4 @@ const StudentDashboard = () => {
 };
 
 export default StudentDashboard;
+

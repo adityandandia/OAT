@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
-// Default initial tests
+// Default initial tests (Hybrid / Short Answer Focus for evaluation)
 const DEFAULT_TESTS = [
   {
     id: 'js-basics',
@@ -17,37 +17,39 @@ const DEFAULT_TESTS = [
         type: 'mcq',
         text: 'Which operator is used to compare both value and type in JavaScript?',
         options: ['==', '===', '=', '!='],
-        correctAnswer: 1
+        correctAnswer: 1,
+        maxMarks: 1
       },
       {
         id: 'q2',
         type: 'short_ans',
         text: 'Explain the difference between undefined and null in JavaScript.',
         sampleAnswer: 'undefined means a variable has been declared but not assigned a value, whereas null is an assignment value that represents no value or an empty object.',
-        keywords: ['declared', 'unassigned', 'object', 'empty', 'primitive']
+        keywords: ['declared', 'unassigned', 'object', 'empty', 'primitive'],
+        maxMarks: 5
       },
       {
         id: 'q3',
-        type: 'embedded',
-        embedType: 'code',
-        codeSnippet: `function calculateTotal(items) {\n  let total = 0;\n  items.forEach(item => {\n    total += item.price;\n  });\n  return total;\n}`,
-        text: 'Review the embedded JavaScript function snippet above. What will be returned if items is an empty array []?',
-        options: ['0', 'undefined', 'NaN', 'TypeError: Cannot read properties'],
-        correctAnswer: 0
+        type: 'short_ans',
+        text: 'What is event delegation in JavaScript and why is it beneficial for DOM management?',
+        sampleAnswer: 'Event delegation is a technique of using event bubbling to handle events at a higher level in the DOM tree (parent) rather than attaching listeners to multiple child elements.',
+        keywords: ['event bubbling', 'parent', 'listeners', 'performance', 'DOM'],
+        maxMarks: 5
       },
       {
         id: 'q4',
         type: 'mcq',
-        text: 'Which built-in method returns the length of a string in JavaScript?',
+        text: 'Which built-in property returns the length of a string in JavaScript?',
         options: ['length()', 'size()', 'length', 'index()'],
-        correctAnswer: 2
+        correctAnswer: 2,
+        maxMarks: 1
       }
     ]
   },
   {
     id: 'react-fundamentals',
     title: 'React Fundamentals & Component Architecture',
-    description: 'React core concepts assessment with code snippets and short answers',
+    description: 'React core concepts assessment with code snippets and short answer evaluations',
     totalQuestions: 4,
     duration: 45,
     createdOn: '18 May 2024',
@@ -57,37 +59,39 @@ const DEFAULT_TESTS = [
         type: 'mcq',
         text: 'What hook is used to perform side effects in React functional components?',
         options: ['useState', 'useContext', 'useEffect', 'useMemo'],
-        correctAnswer: 2
+        correctAnswer: 2,
+        maxMarks: 1
       },
       {
         id: 'q2',
-        type: 'embedded',
-        embedType: 'code',
-        codeSnippet: `const Counter = () => {\n  const [count, setCount] = useState(0);\n  return (\n    <button onClick={() => setCount(count + 1)}>\n      Clicked {count} times\n    </button>\n  );\n};`,
-        text: 'In the embedded React code block, what happens when the user clicks the button element?',
-        options: ['State updates and triggers re-render', 'Component unmounts', 'Page reloads completely', 'Syntax error occurs'],
-        correctAnswer: 0
+        type: 'short_ans',
+        text: 'What is the Virtual DOM in React and why is it beneficial for performance?',
+        sampleAnswer: 'The Virtual DOM is an in-memory representation of the real DOM. React computes differences (diffing) and batches updates to update only changed DOM nodes efficiently.',
+        keywords: ['in-memory', 'diffing', 'reconciliation', 'batching', 'real DOM'],
+        maxMarks: 5
       },
       {
         id: 'q3',
         type: 'short_ans',
-        text: 'What is the Virtual DOM in React and why is it beneficial for performance?',
-        sampleAnswer: 'The Virtual DOM is an in-memory representation of the real DOM. React computes differences (diffing) and batches updates to update only changed DOM nodes efficiently.',
-        keywords: ['in-memory', 'diffing', 'reconciliation', 'batching', 'real DOM']
+        text: 'Explain the key differences between props and state in React components.',
+        sampleAnswer: 'Props are read-only immutable inputs passed from parent to child components, whereas state is internal, mutable data managed within the component.',
+        keywords: ['immutable', 'parent to child', 'mutable', 'internal', 'state'],
+        maxMarks: 5
       },
       {
         id: 'q4',
         type: 'mcq',
         text: 'What is the purpose of the key prop when rendering lists in React?',
         options: ['To uniquely identify elements among siblings for reconciliation', 'To encrypt list items', 'To apply CSS styles to elements', 'To bind state to elements'],
-        correctAnswer: 0
+        correctAnswer: 0,
+        maxMarks: 1
       }
     ]
   },
   {
     id: 'html-css',
     title: 'HTML & CSS Design System',
-    description: 'HTML structure and CSS styling fundamentals',
+    description: 'HTML structure, CSS Flexbox/Grid, and box model short answer evaluation',
     totalQuestions: 3,
     duration: 20,
     createdOn: '15 May 2024',
@@ -97,23 +101,92 @@ const DEFAULT_TESTS = [
         type: 'mcq',
         text: 'What does CSS stand for?',
         options: ['Creative Style Sheets', 'Cascading Style Sheets', 'Computer Style Sheets', 'Colorful Style Sheets'],
-        correctAnswer: 1
+        correctAnswer: 1,
+        maxMarks: 1
       },
       {
         id: 'q2',
-        type: 'embedded',
-        embedType: 'code',
-        codeSnippet: `.container {\n  display: flex;\n  align-items: center;\n}`,
-        text: 'In the CSS Flexbox rules snippet above, which property controls alignment along the cross axis?',
-        options: ['align-items', 'justify-content', 'flex-direction', 'flex-wrap'],
-        correctAnswer: 0
+        type: 'short_ans',
+        text: 'Describe the CSS Box Model components from inside to outside.',
+        sampleAnswer: 'Content, Padding, Border, and Margin.',
+        keywords: ['Content', 'Padding', 'Border', 'Margin'],
+        maxMarks: 5
       },
       {
         id: 'q3',
         type: 'short_ans',
-        text: 'Describe the CSS Box Model components from inside to outside.',
-        sampleAnswer: 'Content, Padding, Border, and Margin.',
-        keywords: ['Content', 'Padding', 'Border', 'Margin']
+        text: 'Explain the primary difference between CSS Flexbox and CSS Grid layout systems.',
+        sampleAnswer: 'Flexbox is designed for one-dimensional layouts (row OR column), while CSS Grid is designed for two-dimensional layouts (rows AND columns simultaneously).',
+        keywords: ['one-dimensional', 'two-dimensional', 'row', 'column', 'grid'],
+        maxMarks: 5
+      }
+    ]
+  },
+  {
+    id: 'db-basics',
+    title: 'Database & SQL Engineering',
+    description: 'Relational database concepts, SQL joins, and key indexing evaluation',
+    totalQuestions: 3,
+    duration: 30,
+    createdOn: '12 May 2024',
+    questions: [
+      {
+        id: 'q1',
+        type: 'mcq',
+        text: 'What does SQL stand for?',
+        options: ['Structured Query Language', 'Simple Query Logic', 'Sequential Question List', 'System Query Layer'],
+        correctAnswer: 0,
+        maxMarks: 1
+      },
+      {
+        id: 'q2',
+        type: 'short_ans',
+        text: 'Explain the difference between INNER JOIN and LEFT JOIN in SQL.',
+        sampleAnswer: 'INNER JOIN returns only matching records from both tables. LEFT JOIN returns all records from the left table and matched records from the right table.',
+        keywords: ['matching', 'both tables', 'left table', 'all records', 'nulls'],
+        maxMarks: 5
+      },
+      {
+        id: 'q3',
+        type: 'short_ans',
+        text: 'What is the difference between a Primary Key and a Foreign Key in relational databases?',
+        sampleAnswer: 'A Primary Key uniquely identifies each row in a table. A Foreign Key is a column that refers to the Primary Key of another table to establish relationships.',
+        keywords: ['unique', 'identifies', 'referential integrity', 'relationship', 'another table'],
+        maxMarks: 5
+      }
+    ]
+  },
+  {
+    id: 'python-basics',
+    title: 'Python Programming & Data Structures',
+    description: 'Python syntax, list comprehensions, and data structures evaluation',
+    totalQuestions: 3,
+    duration: 40,
+    createdOn: '10 May 2024',
+    questions: [
+      {
+        id: 'q1',
+        type: 'mcq',
+        text: 'Which keyword is used to define a function in Python?',
+        options: ['function', 'def', 'func', 'define'],
+        correctAnswer: 1,
+        maxMarks: 1
+      },
+      {
+        id: 'q2',
+        type: 'short_ans',
+        text: 'Explain the key differences between Python lists and tuples.',
+        sampleAnswer: 'Lists are mutable (modifiable) and defined with square brackets []. Tuples are immutable (read-only) and defined with parentheses ().',
+        keywords: ['mutable', 'immutable', 'brackets', 'parentheses', 'tuple'],
+        maxMarks: 5
+      },
+      {
+        id: 'q3',
+        type: 'short_ans',
+        text: 'What is a list comprehension in Python and why is it used?',
+        sampleAnswer: 'List comprehension provides a concise, readable syntax for creating new lists based on existing iterables, e.g., [x*2 for x in range(5)].',
+        keywords: ['concise', 'syntax', 'iterable', 'new list', 'expression'],
+        maxMarks: 5
       }
     ]
   }
@@ -148,15 +221,287 @@ const DEFAULT_COURSES = [
 
 // Preset employee results matching office dashboard
 const DEFAULT_STUDENT_RESULTS = [
-  { id: '1', name: 'Arjun Sharma', role: 'Sr. Software Engineer', status: 'Completed', score: 22, totalQs: 25, percentage: 88, highestPercentage: 92, reattempts: 3, completedOn: '20 May 2024', timeTaken: '27 mins', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '2', name: 'Priya Patel', role: 'Data Specialist', status: 'Completed', score: 20, totalQs: 25, percentage: 80, highestPercentage: 88, reattempts: 2, completedOn: '20 May 2024', timeTaken: '29 mins', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '3', name: 'Rahul Verma', role: 'UI/UX Developer', status: 'Completed', score: 18, totalQs: 25, percentage: 72, highestPercentage: 80, reattempts: 4, completedOn: '19 May 2024', timeTaken: '25 mins', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '4', name: 'Sneha Reddy', role: 'QA Automation Lead', status: 'In Progress', score: 15, totalQs: 25, percentage: 60, highestPercentage: 68, reattempts: 1, completedOn: '-', timeTaken: '-', testTitle: 'React Fundamentals', cohort: 'Full-Stack Web Dev 2026-A' },
-  { id: '5', name: 'Karan Mehta', role: 'Backend Engineer', status: 'Completed', score: 14, totalQs: 25, percentage: 56, highestPercentage: 64, reattempts: 2, completedOn: '19 May 2024', timeTaken: '38 mins', testTitle: 'React Fundamentals', cohort: 'Data Science & Backend Cohort' },
-  { id: '6', name: 'Anjali Singh', role: 'DevOps Specialist', status: 'Not Attempted', score: 0, totalQs: 25, percentage: 0, highestPercentage: 0, reattempts: 0, completedOn: '-', timeTaken: '-', testTitle: 'React Fundamentals', cohort: 'Data Science & Backend Cohort' },
-  { id: '7', name: 'Vikram Das', role: 'Data Scientist', status: 'Completed', score: 24, totalQs: 25, percentage: 96, highestPercentage: 96, reattempts: 1, completedOn: '18 May 2024', timeTaken: '22 mins', testTitle: 'Python Basics', cohort: 'Data Science & Backend Cohort' },
-  { id: '8', name: 'Meera Kapoor', role: 'Lead Frontend Architect', status: 'Completed', score: 25, totalQs: 25, percentage: 100, highestPercentage: 100, reattempts: 0, completedOn: '17 May 2024', timeTaken: '18 mins', testTitle: 'HTML & CSS Design System', cohort: 'UI/UX & Frontend Mastery' },
-  { id: '9', name: 'Rohan Gupta', role: 'Full Stack Engineer', status: 'Completed', score: 21, totalQs: 25, percentage: 84, highestPercentage: 90, reattempts: 3, completedOn: '16 May 2024', timeTaken: '30 mins', testTitle: 'JavaScript & Web Engineering', cohort: 'UI/UX & Frontend Mastery' }
+  { 
+    id: '1', 
+    name: 'Arjun Sharma', 
+    role: 'Sr. Software Engineer', 
+    status: 'Needs Correction', 
+    score: 3.5, 
+    totalQs: 4, 
+    percentage: 88, 
+    highestPercentage: 92, 
+    reattempts: 3, 
+    completedOn: '20 May 2024', 
+    timeTaken: '27 mins', 
+    testId: 'react-fundamentals',
+    testTitle: 'React Fundamentals & Component Architecture', 
+    cohort: 'Full-Stack Web Dev 2026-A',
+    answers: {
+      0: 2, // q1 useEffect
+      1: 0, // q2 state updates
+      2: 'The Virtual DOM is an in-memory light copy of the real DOM tree. React computes diffs and updates only modified elements.', // q3 short answer
+      3: 0  // q4 key prop
+    },
+    corrections: {
+      2: { mark: 'half', points: 0.5, feedback: 'Good explanation of in-memory structure and diffing, but missed details on batching DOM updates.' }
+    }
+  },
+  { 
+    id: '2', 
+    name: 'Priya Patel', 
+    role: 'Data Specialist', 
+    status: 'Graded & Corrected', 
+    score: 4, 
+    totalQs: 4, 
+    percentage: 100, 
+    highestPercentage: 100, 
+    reattempts: 2, 
+    completedOn: '20 May 2024', 
+    timeTaken: '29 mins', 
+    testId: 'react-fundamentals',
+    testTitle: 'React Fundamentals & Component Architecture', 
+    cohort: 'Full-Stack Web Dev 2026-A',
+    answers: {
+      0: 2,
+      1: 0,
+      2: 'Virtual DOM is a virtual representation of UI kept in memory and synced with real DOM by React DOM via reconciliation. It minimizes expensive direct DOM manipulations.',
+      3: 0
+    },
+    corrections: {
+      2: { mark: 'full', points: 1.0, feedback: 'Excellent full explanation covering reconciliation and performance benefits!' }
+    }
+  },
+  { 
+    id: '3', 
+    name: 'Rahul Verma', 
+    role: 'UI/UX Developer', 
+    status: 'Needs Correction', 
+    score: 2.5, 
+    totalQs: 4, 
+    percentage: 63, 
+    highestPercentage: 80, 
+    reattempts: 4, 
+    completedOn: '19 May 2024', 
+    timeTaken: '25 mins', 
+    testId: 'js-basics',
+    testTitle: 'JavaScript & Web Engineering', 
+    cohort: 'Full-Stack Web Dev 2026-A',
+    answers: {
+      0: 1, // ===
+      1: 'Undefined means variable is empty and unassigned. Null means null object created intentionally.',
+      2: 0, // 0
+      3: 0  // wrong
+    },
+    corrections: {
+      1: { mark: 'half', points: 0.5, feedback: 'Basic definition provided, but clarify that undefined is default unassigned state.' }
+    }
+  },
+  { 
+    id: '4', 
+    name: 'Sneha Reddy', 
+    role: 'QA Automation Lead', 
+    status: 'In Progress', 
+    score: 2, 
+    totalQs: 4, 
+    percentage: 50, 
+    highestPercentage: 68, 
+    reattempts: 1, 
+    completedOn: '-', 
+    timeTaken: '-', 
+    testId: 'react-fundamentals',
+    testTitle: 'React Fundamentals & Component Architecture', 
+    cohort: 'Full-Stack Web Dev 2026-A' 
+  },
+  { 
+    id: '5', 
+    name: 'Karan Mehta', 
+    role: 'Backend Engineer', 
+    status: 'Needs Correction', 
+    score: 2, 
+    totalQs: 4, 
+    percentage: 50, 
+    highestPercentage: 64, 
+    reattempts: 2, 
+    completedOn: '19 May 2024', 
+    timeTaken: '38 mins', 
+    testId: 'js-basics',
+    testTitle: 'JavaScript & Web Engineering', 
+    cohort: 'Data Science & Backend Cohort',
+    answers: {
+      0: 1,
+      1: 'Undefined means variable is declared but not initialized with a value. Null is explicit assignment representing no object value.',
+      2: 1,
+      3: 2
+    },
+    corrections: {
+      1: { mark: 'pending', points: 0.0, feedback: '' }
+    }
+  },
+  { 
+    id: '6', 
+    name: 'Anjali Singh', 
+    role: 'DevOps Specialist', 
+    status: 'Not Attempted', 
+    score: 0, 
+    totalQs: 4, 
+    percentage: 0, 
+    highestPercentage: 0, 
+    reattempts: 0, 
+    completedOn: '-', 
+    timeTaken: '-', 
+    testId: 'react-fundamentals',
+    testTitle: 'React Fundamentals & Component Architecture', 
+    cohort: 'Data Science & Backend Cohort' 
+  },
+  { 
+    id: '7', 
+    name: 'Vikram Das', 
+    role: 'Data Scientist', 
+    status: 'Needs Correction', 
+    score: 3, 
+    totalQs: 4, 
+    percentage: 75, 
+    highestPercentage: 96, 
+    reattempts: 1, 
+    completedOn: '18 May 2024', 
+    timeTaken: '22 mins', 
+    testId: 'react-fundamentals',
+    testTitle: 'React Fundamentals & Component Architecture', 
+    cohort: 'Data Science & Backend Cohort',
+    answers: {
+      0: 2,
+      1: 0,
+      2: 'It is a shadow DOM used to speed up browser renders by buffering changes in memory before painting.',
+      3: 0
+    },
+    corrections: {
+      2: { mark: 'pending', points: 0.0, feedback: '' }
+    }
+  },
+  { 
+    id: '8', 
+    name: 'Meera Kapoor', 
+    role: 'Lead Frontend Architect', 
+    status: 'Graded & Corrected', 
+    score: 3, 
+    totalQs: 3, 
+    percentage: 100, 
+    highestPercentage: 100, 
+    reattempts: 0, 
+    completedOn: '17 May 2024', 
+    timeTaken: '18 mins', 
+    testId: 'html-css',
+    testTitle: 'HTML & CSS Design System', 
+    cohort: 'UI/UX & Frontend Mastery',
+    answers: {
+      0: 1,
+      1: 0,
+      2: 'Content, Padding, Border, and Margin from inside out.'
+    },
+    corrections: {
+      2: { mark: 'full', points: 1.0, feedback: 'Spot-on order of box model components!' }
+    }
+  },
+  { 
+    id: '9', 
+    name: 'Rohan Gupta', 
+    role: 'Full Stack Engineer', 
+    status: 'Needs Correction', 
+    score: 3, 
+    totalQs: 4, 
+    percentage: 75, 
+    highestPercentage: 90, 
+    reattempts: 3, 
+    completedOn: '16 May 2024', 
+    timeTaken: '30 mins', 
+    testId: 'js-basics',
+    testTitle: 'JavaScript & Web Engineering', 
+    cohort: 'UI/UX & Frontend Mastery',
+    answers: {
+      0: 1,
+      1: 'Undefined means uninitialized variable. Null is an object assigned to denote clear absence of value.',
+      2: 0,
+      3: 2
+    },
+    corrections: {
+      1: { mark: 'pending', points: 0.0, feedback: '' }
+    }
+  },
+  { 
+    id: '10', 
+    name: 'Charan (You)', 
+    role: 'Software Architect', 
+    status: 'Needs Correction', 
+    score: 6, 
+    totalQs: 3, 
+    percentage: 55, 
+    highestPercentage: 75, 
+    reattempts: 2, 
+    completedOn: '28 Jul 2026', 
+    timeTaken: '22 mins', 
+    testId: 'db-basics',
+    testTitle: 'Database & SQL Engineering', 
+    cohort: 'Data Science & Backend Cohort',
+    answers: {
+      0: 0,
+      1: 'INNER JOIN returns matching rows in both tables. LEFT JOIN returns all rows from left table and matched rows from right table.',
+      2: 'Primary key uniquely identifies a row in a table. Foreign key links to primary key of another table.'
+    },
+    corrections: {
+      1: { mark: 'pending', points: 0.0, feedback: '' },
+      2: { mark: 'pending', points: 0.0, feedback: '' }
+    }
+  },
+  { 
+    id: '11', 
+    name: 'Siddharth Rao', 
+    role: 'Data Engineer', 
+    status: 'Needs Correction', 
+    score: 5, 
+    totalQs: 3, 
+    percentage: 45, 
+    highestPercentage: 60, 
+    reattempts: 1, 
+    completedOn: '25 Jul 2026', 
+    timeTaken: '31 mins', 
+    testId: 'python-basics',
+    testTitle: 'Python Programming & Data Structures', 
+    cohort: 'Data Science & Backend Cohort',
+    answers: {
+      0: 1,
+      1: 'Lists use square brackets and are mutable. Tuples use parentheses and cannot be modified.',
+      2: 'List comprehension is a single line for loop syntax to build a list.'
+    },
+    corrections: {
+      1: { mark: 'pending', points: 0.0, feedback: '' },
+      2: { mark: 'pending', points: 0.0, feedback: '' }
+    }
+  },
+  { 
+    id: '12', 
+    name: 'Neha Roy', 
+    role: 'Frontend Developer', 
+    status: 'Needs Correction', 
+    score: 6, 
+    totalQs: 3, 
+    percentage: 55, 
+    highestPercentage: 80, 
+    reattempts: 1, 
+    completedOn: '24 Jul 2026', 
+    timeTaken: '15 mins', 
+    testId: 'html-css',
+    testTitle: 'HTML & CSS Design System', 
+    cohort: 'UI/UX & Frontend Mastery',
+    answers: {
+      0: 1,
+      1: 'Content, Padding, Border, Margin from inside out.',
+      2: 'Flexbox is 1D row or column layout. Grid is 2D rows and columns layout.'
+    },
+    corrections: {
+      1: { mark: 'pending', points: 0.0, feedback: '' },
+      2: { mark: 'pending', points: 0.0, feedback: '' }
+    }
+  }
 ];
 
 // Preset Cohorts List
@@ -221,17 +566,26 @@ export const AppProvider = ({ children }) => {
   // Tests
   const [tests, setTests] = useState(() => {
     const saved = localStorage.getItem('shai_tests');
-    const initialData = saved ? JSON.parse(saved) : DEFAULT_TESTS;
-    return initialData.map(test => ({
-      ...test,
-      questions: test.questions?.map(q => {
-        let type = q.type || 'mcq';
-        if (type === 'embedded' && (!q.codeSnippet || q.codeSnippet.trim() === '') && q.options && q.options.length > 0) {
-          type = 'mcq';
-        }
-        return { ...q, type };
-      })
-    }));
+    let loadedData = saved ? JSON.parse(saved) : DEFAULT_TESTS;
+    
+    // Merge/enrich with DEFAULT_TESTS so every assessment has hybrid/short answer questions with model answer keys
+    return DEFAULT_TESTS.map(defTest => {
+      const match = (loadedData || []).find(t => t.id === defTest.id || t.title === defTest.title) || defTest;
+      const hasShortAns = match.questions?.some(q => q.type === 'short_ans');
+      const questions = hasShortAns ? match.questions : defTest.questions;
+
+      return {
+        ...defTest,
+        ...match,
+        questions: (questions || defTest.questions).map(q => {
+          let type = q?.type || 'mcq';
+          if (type === 'embedded' && (!q?.codeSnippet || q.codeSnippet.trim() === '') && q?.options && q.options.length > 0) {
+            type = 'mcq';
+          }
+          return { ...q, type, maxMarks: q?.maxMarks || (type === 'short_ans' ? 5 : 1) };
+        })
+      };
+    });
   });
 
   // Courses
@@ -246,12 +600,22 @@ export const AppProvider = ({ children }) => {
     if (!saved) return DEFAULT_STUDENT_RESULTS;
     try {
       const parsed = JSON.parse(saved);
-      return parsed.map((item, idx) => {
+      const combined = Array.isArray(parsed) ? [...parsed] : [...DEFAULT_STUDENT_RESULTS];
+      DEFAULT_STUDENT_RESULTS.forEach(def => {
+        if (!combined.some(c => c.id === def.id || (c.name === def.name && c.testId === def.testId))) {
+          combined.push(def);
+        }
+      });
+
+      return combined.map((item, idx) => {
         const def = DEFAULT_STUDENT_RESULTS.find(d => d.id === item.id || d.name === item.name) || DEFAULT_STUDENT_RESULTS[idx % DEFAULT_STUDENT_RESULTS.length];
         const randomReattempt = def?.reattempts ?? (item.id === '1' ? 3 : item.id === '2' ? 2 : item.id === '3' ? 4 : item.id === '4' ? 1 : item.id === '5' ? 2 : 0);
         const randomHighest = def?.highestPercentage ?? (item.percentage ? Math.min(100, item.percentage + 4) : 0);
         return {
+          ...def,
           ...item,
+          answers: item.answers || def?.answers || {},
+          corrections: item.corrections || def?.corrections || {},
           reattempts: item.reattempts !== undefined ? item.reattempts : randomReattempt,
           highestPercentage: item.highestPercentage !== undefined ? item.highestPercentage : randomHighest,
           role: item.role || def?.role || 'Employee'
@@ -504,23 +868,45 @@ export const AppProvider = ({ children }) => {
     const existingAttemptCount = studentResults.filter(r => r.name.includes('Charan') && r.testTitle === matchedTest.title).length;
     const currentHighest = existingResult ? Math.max(existingResult.highestPercentage || 0, percentage) : percentage;
 
+    const hasShortAns = matchedTest.questions?.some(q => q.type === 'short_ans');
+    const initialStatus = hasShortAns ? 'Needs Correction' : 'Completed';
+
     const charanResultId = `result-charan-${Date.now()}`;
     const newStudentResult = {
       id: charanResultId,
       name: user?.name ? `${user.name} (You)` : 'Charan (You)',
       role: 'Employee / Engineer',
-      status: 'Completed',
+      status: initialStatus,
       score,
       totalQs: totalQuestions,
       percentage,
       highestPercentage: currentHighest,
       reattempts: existingAttemptCount,
       completedOn: completedDate,
+      testId: matchedTest.id,
       testTitle: matchedTest.title,
-      cohort: 'Full-Stack Web Dev 2026-A'
+      cohort: 'Full-Stack Web Dev 2026-A',
+      answers: answers || {},
+      corrections: {}
     };
 
     setStudentResults(prev => [newStudentResult, ...prev]);
+  };
+
+  // Grade Student Submission (manual correction for short answer questions)
+  const gradeStudentSubmission = (resultId, updatedCorrections, finalScore, finalPercentage, newStatus = 'Graded & Corrected') => {
+    setStudentResults(prev => prev.map(item => {
+      if (item.id === resultId) {
+        return {
+          ...item,
+          corrections: { ...(item.corrections || {}), ...updatedCorrections },
+          score: finalScore,
+          percentage: finalPercentage,
+          status: newStatus
+        };
+      }
+      return item;
+    }));
   };
 
   // Stats computation
@@ -602,6 +988,7 @@ export const AppProvider = ({ children }) => {
       deleteTest,
       studentResults,
       setStudentResults,
+      gradeStudentSubmission,
       courses,
       createCourse,
       updateCourse,
