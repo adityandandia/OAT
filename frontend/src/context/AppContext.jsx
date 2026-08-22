@@ -671,53 +671,76 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('shai_charan_completed', JSON.stringify(charanCompletedTests));
   }, [charanCompletedTests]);
 
-  // Auth Login (Connected to FastAPI / Local Fallback)
+  // Auth Login (Mock mode enabled for frontend-only testing)
   const login = async (identifier, password, roleHint) => {
-    try {
-      // 1. Try hitting the real FastAPI Auth Endpoint
-      const response = await fetch('http://localhost:8000/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password })
-      });
+    const MOCK_LOGIN_ENABLED = true;
+    const mockWait = (data) =>
+      new Promise((resolve) => setTimeout(() => resolve(data), 400));
 
-      if (response.ok) {
-        const data = await response.json();
-        const serverRole = data.user?.role?.toLowerCase() || 'student';
-        const finalRole = roleHint || serverRole;
-        const userData = {
-          name: data.user?.username || identifier,
-          role: finalRole,
-          title: finalRole === 'admin' ? 'Administrator' : finalRole === 'creator' ? 'Course Creator' : 'Employee',
-          token: data.access_token
-        };
-        setUser(userData);
-        return userData;
-      } else {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || 'Invalid login credentials.');
-      }
-    } catch (err) {
-      // 2. Local Fallback for Demo Testing
-      const lower = identifier ? identifier.toLowerCase().trim() : '';
-      let role = roleHint;
-      if (!role) {
-        if (lower === 'admin') role = 'admin';
-        else if (lower === 'creator' || lower === 'teacher') role = 'creator';
-        else role = 'student';
-      }
-
-      const title = role === 'admin' ? 'Administrator' : role === 'creator' ? 'Course Creator' : 'Employee';
-      const defaultName = role === 'admin' ? 'Charan (Admin)' : role === 'creator' ? 'Charan (Course Creator)' : 'Charan';
-
+    // MOCK MODE: return a fake successful login response so the UI works
+    // without the backend. To switch back to the real API later, set this to
+    // false and uncomment the real fetch block below.
+    if (MOCK_LOGIN_ENABLED) {
+      const finalRole = (roleHint || 'student').toLowerCase();
       const userData = {
-        name: (identifier && !['charan', 'admin', 'creator'].includes(lower)) ? identifier : defaultName,
-        role: role,
-        title: title
+        user_id: 1,
+        full_name: 'Test User',
+        email: identifier || 'test@x.com',
+        role: finalRole,
+        name: 'Test User',
+        title: finalRole === 'admin' ? 'Administrator' : finalRole === 'creator' ? 'Course Creator' : 'Employee',
+        token: 'fake-token-123'
       };
+
+      await mockWait(userData);
       setUser(userData);
       return userData;
     }
+
+    // REAL MODE (uncomment once the backend is running):
+    // try {
+    //   const response = await fetch('http://localhost:8000/auth/login', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify({ identifier, password })
+    //   });
+    //
+    //   if (response.ok) {
+    //     const data = await response.json();
+    //     const serverRole = data.user?.role?.toLowerCase() || 'student';
+    //     const finalRole = roleHint || serverRole;
+    //     const userData = {
+    //       name: data.user?.username || identifier,
+    //       role: finalRole,
+    //       title: finalRole === 'admin' ? 'Administrator' : finalRole === 'creator' ? 'Course Creator' : 'Employee',
+    //       token: data.access_token
+    //     };
+    //     setUser(userData);
+    //     return userData;
+    //   } else {
+    //     const errData = await response.json().catch(() => ({}));
+    //     throw new Error(errData.detail || 'Invalid login credentials.');
+    //   }
+    // } catch (err) {
+    //   const lower = identifier ? identifier.toLowerCase().trim() : '';
+    //   let role = roleHint;
+    //   if (!role) {
+    //     if (lower === 'admin') role = 'admin';
+    //     else if (lower === 'creator' || lower === 'teacher') role = 'creator';
+    //     else role = 'student';
+    //   }
+    //
+    //   const title = role === 'admin' ? 'Administrator' : role === 'creator' ? 'Course Creator' : 'Employee';
+    //   const defaultName = role === 'admin' ? 'Charan (Admin)' : role === 'creator' ? 'Charan (Course Creator)' : 'Charan';
+    //
+    //   const userData = {
+    //     name: (identifier && !['charan', 'admin', 'creator'].includes(lower)) ? identifier : defaultName,
+    //     role: role,
+    //     title: title
+    //   };
+    //   setUser(userData);
+    //   return userData;
+    // }
   };
 
   const logout = () => {

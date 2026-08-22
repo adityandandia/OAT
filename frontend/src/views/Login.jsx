@@ -43,13 +43,18 @@ const Login = () => {
 
       await login(username.trim(), password, targetRole);
 
-      if (targetRole === 'admin') {
-        navigate('/admin');
-      } else if (targetRole === 'creator') {
-        navigate('/creator');
-      } else {
-        navigate('/dashboard');
-      }
+      // Mock-mode UI flow: send successful logins to the tests page so the
+      // AllTestsPage can be verified without the backend. Revert to the
+      // original role-based navigation when the real auth service is available.
+      navigate('/all-tests');
+
+      // if (targetRole === 'admin') {
+      //   navigate('/admin');
+      // } else if (targetRole === 'creator') {
+      //   navigate('/creator');
+      // } else {
+      //   navigate('/dashboard');
+      // }
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
@@ -73,13 +78,16 @@ const Login = () => {
 
       await login(demoUser, 'password123', role);
 
-      if (role === 'admin') {
-        navigate('/admin');
-      } else if (role === 'creator') {
-        navigate('/creator');
-      } else {
-        navigate('/dashboard');
-      }
+      // Mock-mode flow for UI checks: land on the All Tests page.
+      navigate('/all-tests');
+
+      // if (role === 'admin') {
+      //   navigate('/admin');
+      // } else if (role === 'creator') {
+      //   navigate('/creator');
+      // } else {
+      //   navigate('/dashboard');
+      // }
     } catch (err) {
       setError('Quick login failed.');
     } finally {
