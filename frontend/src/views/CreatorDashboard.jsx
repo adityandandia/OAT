@@ -55,7 +55,20 @@ const CreatorDashboard = () => {
   const [testDesc, setTestDesc] = useState('');
   const [testDuration, setTestDuration] = useState('30');
 
-  // Schedule & Recurrence Category state
+  // Test Category & Delivery Rules state
+  const [testCategory, setTestCategory] = useState('Software Engineering');
+  const [customCategory, setCustomCategory] = useState('');
+  const [testAttemptsAllowed, setTestAttemptsAllowed] = useState('1'); // '1', '2', '3', '5', '10', 'Unlimited'
+  const [testShuffleQuestions, setTestShuffleQuestions] = useState(true);
+  const [testRandomizeQuestions, setTestRandomizeQuestions] = useState(true);
+
+  // Dashboard Date Filter & Category Filter State
+  const [dateFilterPreset, setDateFilterPreset] = useState('all'); // 'all', 'today', 'last7', 'last30', 'this_month', 'custom'
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [selectedDashboardCategory, setSelectedDashboardCategory] = useState('All');
+
+  // Test Frequency Type (renamed from scheduleType/recurrence)
   const [scheduleType, setScheduleType] = useState('one_time'); // 'one_time', 'weekly', 'monthly'
   const [selectedWeeklyDays, setSelectedWeeklyDays] = useState(['Mon']);
   const [monthlyMonth, setMonthlyMonth] = useState('August');
@@ -366,6 +379,12 @@ const CreatorDashboard = () => {
     setTestTitle('');
     setTestDesc('');
     setTestDuration('30');
+    setTestCategory('Software Engineering');
+    setCustomCategory('');
+    setTestAttemptsAllowed('1');
+    setTestShuffleQuestions(true);
+    setTestRandomizeQuestions(true);
+    setScheduleType('one_time');
     setTestQuestions([
       { type: 'mcq', text: '', options: ['', '', '', ''], correctAnswer: 0 }
     ]);
@@ -378,7 +397,22 @@ const CreatorDashboard = () => {
     setActiveTestId(test.id);
     setTestTitle(test.title);
     setTestDesc(test.description);
-    setTestDuration(test.duration.toString());
+    setTestDuration(test.duration ? test.duration.toString() : '30');
+    
+    const standardCategories = ['Software Engineering', 'Web Development', 'UI/UX Design', 'Database Systems', 'Data Science', 'Cloud & DevOps', 'QA & Testing'];
+    if (test.category && !standardCategories.includes(test.category)) {
+      setTestCategory('Custom');
+      setCustomCategory(test.category);
+    } else {
+      setTestCategory(test.category || 'Software Engineering');
+      setCustomCategory('');
+    }
+
+    setTestAttemptsAllowed(test.attemptsAllowed !== undefined ? test.attemptsAllowed.toString() : '1');
+    setTestShuffleQuestions(test.shuffleQuestions !== undefined ? test.shuffleQuestions : true);
+    setTestRandomizeQuestions(test.randomizeQuestions !== undefined ? test.randomizeQuestions : true);
+    setScheduleType(test.frequencyType || 'one_time');
+
     setTestQuestions(test.questions.map(q => {
       let resolvedType = q.type || 'mcq';
       if (resolvedType === 'embedded' && (!q.codeSnippet || q.codeSnippet.trim() === '') && q.options && q.options.length > 0) {
@@ -411,10 +445,17 @@ const CreatorDashboard = () => {
       return;
     }
 
+    const finalCategory = testCategory === 'Custom' ? (customCategory.trim() || 'General') : testCategory;
+
     const testPayload = {
       title: testTitle,
       description: testDesc,
       duration: parseInt(testDuration) || 30,
+      category: finalCategory,
+      frequencyType: scheduleType,
+      attemptsAllowed: testAttemptsAllowed === 'Unlimited' ? 'Unlimited' : parseInt(testAttemptsAllowed) || 1,
+      shuffleQuestions: testShuffleQuestions,
+      randomizeQuestions: testRandomizeQuestions,
       questions: cleanQuestions.map((q, idx) => {
         const base = {
           id: `q-${idx}-${Date.now()}`,
@@ -898,42 +939,224 @@ const CreatorDashboard = () => {
               {!resultsSelectedTest ? (
                 /* LEVEL 1: PAGINATED OVERVIEW OF ALL TESTS */
                 <div className="flex flex-col gap-8 animate-fade-in">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                      <h2 className="font-display font-extrabold text-xl text-gray-800">Results & Assessment Performance</h2>
-                      <p className="text-xs text-gray-400 font-medium mt-0.5">Select a test from the table below to view all enrolled student users in paginated table form.</p>
+                  {/* Date Filter & Control Bar */}
+                  <div className="bg-purple-50/60 rounded-3xl p-5 border border-purple-100 flex flex-col gap-4">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4.5 h-4.5 text-purple-700" />
+                        <span className="text-xs font-extrabold text-purple-950 uppercase tracking-wide">
+                          Dashboard Date Filter
+                        </span>
+                      </div>
+
+                      {/* Filter Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {[
+                          { id: 'all', label: 'All Time' },
+                          { id: 'today', label: 'Today' },
+                          { id: 'last7', label: 'Last 7 Days' },
+                          { id: 'last30', label: 'Last 30 Days' },
+                          { id: 'this_month', label: 'This Month' },
+                          { id: 'custom', label: 'Custom Range' }
+                        ].map(preset => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setDateFilterPreset(preset.id)}
+                            className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                              dateFilterPreset === preset.id
+                                ? 'bg-[#5e328c] text-white shadow-xs'
+                                : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="relative w-full md:w-72">
-                      <input
-                        type="text"
-                        placeholder="Search test title..."
-                        value={searchStudent}
-                        onChange={(e) => { setSearchStudent(e.target.value); setResultsTestsPage(1); }}
-                        className="w-full py-2.5 pl-4 pr-10 rounded-full border border-gray-200 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-200 transition-all text-gray-700 placeholder-gray-400"
-                      />
-                      <Search className="absolute right-3.5 top-2.5 w-4 h-4 text-gray-400" />
+
+                    {/* Custom Date Range & Category Filter */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t border-purple-100 flex-wrap">
+                      {dateFilterPreset === 'custom' && (
+                        <div className="flex items-center gap-3 flex-wrap animate-fade-in">
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold text-gray-600">From:</label>
+                            <input
+                              type="date"
+                              value={dateFrom}
+                              onChange={(e) => setDateFrom(e.target.value)}
+                              className="py-1.5 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none"
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs font-bold text-gray-600">To:</label>
+                            <input
+                              type="date"
+                              value={dateTo}
+                              onChange={(e) => setDateTo(e.target.value)}
+                              className="py-1.5 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none"
+                            />
+                          </div>
+                          {(dateFrom || dateTo) && (
+                            <button
+                              type="button"
+                              onClick={() => { setDateFrom(''); setDateTo(''); }}
+                              className="text-xs font-bold text-red-600 hover:underline cursor-pointer"
+                            >
+                              Clear Dates
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Category Filter Dropdown */}
+                      <div className="flex items-center gap-2 ml-auto">
+                        <Filter className="w-3.5 h-3.5 text-purple-700" />
+                        <span className="text-xs font-bold text-gray-600">Category:</span>
+                        <select
+                          value={selectedDashboardCategory}
+                          onChange={(e) => setSelectedDashboardCategory(e.target.value)}
+                          className="py-1.5 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none"
+                        >
+                          <option value="All">All Categories</option>
+                          <option value="Software Engineering">Software Engineering</option>
+                          <option value="Web Development">Web Development</option>
+                          <option value="UI/UX Design">UI/UX Design</option>
+                          <option value="Database Systems">Database Systems</option>
+                          <option value="Data Science">Data Science</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
 
                   {/* Summary Stat Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                    <div className="bg-purple-50 rounded-3xl p-6 border border-purple-100 shadow-sm">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Total Submissions</p>
-                      <p className="mt-4 text-3xl font-extrabold text-purple-900">{studentResults.length}</p>
-                    </div>
-                    <div className="bg-green-50 rounded-3xl p-6 border border-green-100 shadow-sm">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Passed</p>
-                      <p className="mt-4 text-3xl font-extrabold text-green-900">{passedCount}</p>
-                    </div>
-                    <div className="bg-red-50 rounded-3xl p-6 border border-red-100 shadow-sm">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">Failed</p>
-                      <p className="mt-4 text-3xl font-extrabold text-red-900">{failedCount}</p>
-                    </div>
-                    <div className="bg-purple-900 rounded-3xl p-6 border border-purple-900 shadow-sm text-white">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-purple-200">Average Score</p>
-                      <p className="mt-4 text-3xl font-extrabold text-white">{averageScore}%</p>
-                    </div>
-                  </div>
+                  {(() => {
+                    const parseDateObj = (dateStr) => {
+                      if (!dateStr) return null;
+                      const d = new Date(dateStr);
+                      if (!isNaN(d.getTime())) return d;
+                      const parts = dateStr.split(' ');
+                      if (parts.length === 3) {
+                        const day = parseInt(parts[0]);
+                        const monthMap = { Jan: 0, Feb: 1, Mar: 2, Apr: 3, May: 4, Jun: 5, Jul: 6, Aug: 7, Sep: 8, Oct: 9, Nov: 10, Dec: 11 };
+                        const month = monthMap[parts[1]] !== undefined ? monthMap[parts[1]] : 0;
+                        const year = parseInt(parts[2]);
+                        return new Date(year, month, day);
+                      }
+                      return null;
+                    };
+
+                    const checkDateInRange = (dateObj, preset, fromStr, toStr) => {
+                      if (!dateObj) return true;
+                      if (preset === 'all') return true;
+                      const now = new Date();
+                      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+                      if (preset === 'today') return dateObj >= startOfDay;
+                      if (preset === 'last7') {
+                        const d7 = new Date(startOfDay);
+                        d7.setDate(d7.getDate() - 7);
+                        return dateObj >= d7;
+                      }
+                      if (preset === 'last30') {
+                        const d30 = new Date(startOfDay);
+                        d30.setDate(d30.getDate() - 30);
+                        return dateObj >= d30;
+                      }
+                      if (preset === 'this_month') {
+                        const firstMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                        return dateObj >= firstMonth;
+                      }
+                      if (preset === 'custom') {
+                        let valid = true;
+                        if (fromStr) {
+                          const fDate = new Date(fromStr);
+                          fDate.setHours(0, 0, 0, 0);
+                          if (dateObj < fDate) valid = false;
+                        }
+                        if (toStr) {
+                          const tDate = new Date(toStr);
+                          tDate.setHours(23, 59, 59, 999);
+                          if (dateObj > tDate) valid = false;
+                        }
+                        return valid;
+                      }
+                      return true;
+                    };
+
+                    const filteredCreatedTestsList = tests.filter(t => {
+                      const tDate = parseDateObj(t.createdOn || t.createdDate);
+                      const inRange = checkDateInRange(tDate, dateFilterPreset, dateFrom, dateTo);
+                      const catMatches = selectedDashboardCategory === 'All' || t.category === selectedDashboardCategory;
+                      return inRange && catMatches;
+                    });
+
+                    const filteredDashboardSubmissionsList = studentResults.filter(sub => {
+                      const sDate = parseDateObj(sub.completedOn);
+                      return checkDateInRange(sDate, dateFilterPreset, dateFrom, dateTo);
+                    });
+
+                    const dashTotalCreated = filteredCreatedTestsList.length;
+                    const dashTotalCompleted = filteredDashboardSubmissionsList.filter(s => s.status === 'Completed' || s.status === 'Graded & Corrected').length;
+                    const dashTotalPending = filteredDashboardSubmissionsList.filter(s => s.status === 'Needs Correction' || s.status === 'In Progress').length;
+                    
+                    const completedSubs = filteredDashboardSubmissionsList.filter(s => s.status === 'Completed' || s.status === 'Graded & Corrected');
+                    const avgScoreVal = completedSubs.length > 0
+                      ? Math.round(completedSubs.reduce((acc, curr) => acc + (curr.percentage || 0), 0) / completedSubs.length)
+                      : 84;
+
+                    return (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* Card 1: Total Test Created */}
+                        <div className="bg-purple-50 rounded-3xl p-6 border border-purple-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+                          <div className="flex justify-between items-center">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-purple-700">1. Total Test Created</p>
+                            <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
+                              <FileText className="w-4.5 h-4.5" />
+                            </div>
+                          </div>
+                          <p className="mt-4 text-3xl font-extrabold text-purple-950">{dashTotalCreated}</p>
+                          <p className="text-[10px] text-purple-600/80 font-medium mt-1">Tests created in filter range</p>
+                        </div>
+
+                        {/* Card 2: How Many Test Completed */}
+                        <div className="bg-green-50 rounded-3xl p-6 border border-green-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+                          <div className="flex justify-between items-center">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-green-700">2. Test Completed</p>
+                            <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center text-green-700">
+                              <CheckCircle2 className="w-4.5 h-4.5" />
+                            </div>
+                          </div>
+                          <p className="mt-4 text-3xl font-extrabold text-green-950">{dashTotalCompleted}</p>
+                          <p className="text-[10px] text-green-600/80 font-medium mt-1">Completed & graded submissions</p>
+                        </div>
+
+                        {/* Card 3: How Many Test are Pending */}
+                        <div className="bg-amber-50 rounded-3xl p-6 border border-amber-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+                          <div className="flex justify-between items-center">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">3. Test Pending</p>
+                            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+                              <Clock className="w-4.5 h-4.5" />
+                            </div>
+                          </div>
+                          <p className="mt-4 text-3xl font-extrabold text-amber-950">{dashTotalPending}</p>
+                          <p className="text-[10px] text-amber-600/80 font-medium mt-1">Needs correction or in-progress</p>
+                        </div>
+
+                        {/* Card 4: Average Score */}
+                        <div className="bg-purple-900 rounded-3xl p-6 border border-purple-900 shadow-sm text-white flex flex-col justify-between transition-all hover:shadow-md">
+                          <div className="flex justify-between items-center">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-purple-200">Average Score</p>
+                            <div className="w-8 h-8 rounded-xl bg-purple-800 flex items-center justify-center text-purple-200">
+                              <Award className="w-4.5 h-4.5" />
+                            </div>
+                          </div>
+                          <p className="mt-4 text-3xl font-extrabold text-white">{avgScoreVal}%</p>
+                          <p className="text-[10px] text-purple-200 font-medium mt-1">Across all completed tests</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {/* PAGINATED TABLE OF ALL TESTS */}
                   <div className="overflow-x-auto bg-white rounded-3xl p-6 border border-gray-200 shadow-xs flex flex-col gap-4">
@@ -2822,15 +3045,101 @@ const CreatorDashboard = () => {
                 />
               </div>
 
-              {/* Schedule & Recurrence Category Section */}
+              {/* Test Category Definition */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Test Category (Grouping Domain)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <select 
+                    value={testCategory}
+                    onChange={(e) => setTestCategory(e.target.value)}
+                    className="py-2.5 px-4 rounded-xl border border-gray-250 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-700 bg-white"
+                  >
+                    <option value="Software Engineering">Software Engineering</option>
+                    <option value="Web Development">Web Development</option>
+                    <option value="UI/UX Design">UI/UX Design</option>
+                    <option value="Database Systems">Database Systems</option>
+                    <option value="Data Science">Data Science</option>
+                    <option value="Cloud & DevOps">Cloud & DevOps</option>
+                    <option value="QA & Testing">QA & Testing</option>
+                    <option value="Custom">Custom Category...</option>
+                  </select>
+                  {testCategory === 'Custom' && (
+                    <input 
+                      type="text" 
+                      required
+                      placeholder="Type custom category name..." 
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="py-2.5 px-4 rounded-xl border border-gray-250 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-700 placeholder-gray-400"
+                    />
+                  )}
+                </div>
+              </div>
+
+              {/* Test Rules & Delivery Settings */}
+              <div className="bg-purple-50/40 p-4 rounded-2xl border border-purple-100/80 flex flex-col gap-4">
+                <label className="text-xs font-extrabold text-[#402068] uppercase flex items-center gap-1.5">
+                  <Target className="w-4 h-4 text-purple-600" />
+                  Test Attempts & Randomization Settings
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* No. of Attempts Allowed */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">No. of Attempts</label>
+                    <select
+                      value={testAttemptsAllowed}
+                      onChange={(e) => setTestAttemptsAllowed(e.target.value)}
+                      className="py-2 px-3 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-200"
+                    >
+                      <option value="1">1 Attempt</option>
+                      <option value="2">2 Attempts</option>
+                      <option value="3">3 Attempts</option>
+                      <option value="5">5 Attempts</option>
+                      <option value="10">10 Attempts</option>
+                      <option value="Unlimited">Unlimited Attempts</option>
+                    </select>
+                  </div>
+
+                  {/* Shuffle Option for Questions */}
+                  <div className="flex flex-col gap-1 justify-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Shuffle Option</span>
+                    <label className="flex items-center gap-2 cursor-pointer select-none bg-white py-1.5 px-3 rounded-xl border border-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={testShuffleQuestions}
+                        onChange={(e) => setTestShuffleQuestions(e.target.checked)}
+                        className="w-4 h-4 accent-purple-700 rounded cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-700">Shuffle Questions</span>
+                    </label>
+                  </div>
+
+                  {/* Questions Randomization Option */}
+                  <div className="flex flex-col gap-1 justify-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Questions Randomization</span>
+                    <label className="flex items-center gap-2 cursor-pointer select-none bg-white py-1.5 px-3 rounded-xl border border-gray-200">
+                      <input
+                        type="checkbox"
+                        checked={testRandomizeQuestions}
+                        onChange={(e) => setTestRandomizeQuestions(e.target.checked)}
+                        className="w-4 h-4 accent-purple-700 rounded cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-gray-700">Randomize Order</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Test Frequency Type Section (renamed from Category & Schedule Recurrence) */}
               <div className="flex flex-col gap-3 bg-purple-50/50 p-4 rounded-2xl border border-purple-100">
                 <div className="flex justify-between items-center flex-wrap gap-2">
                   <label className="text-xs font-extrabold text-[#402068] uppercase flex items-center gap-1.5">
                     <Calendar className="w-4 h-4 text-purple-600" />
-                    Category & Schedule Recurrence
+                    Test Frequency Type
                   </label>
                   
-                  {/* Recurrence Toggle Pills */}
+                  {/* Frequency Type Toggle Pills */}
                   <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200">
                     {[
                       { id: 'one_time', label: 'One-Time' },

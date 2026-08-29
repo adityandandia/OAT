@@ -160,7 +160,7 @@ const Login = () => {
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            Course Creator
+            Test Creator
           </button>
         </div>
 

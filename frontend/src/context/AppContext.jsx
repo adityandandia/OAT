@@ -7,6 +7,11 @@ const DEFAULT_TESTS = [
   {
     id: 'js-basics',
     title: 'JavaScript & Web Engineering',
+    category: 'Software Engineering',
+    frequencyType: 'one_time',
+    attemptsAllowed: 3,
+    shuffleQuestions: true,
+    randomizeQuestions: true,
     description: 'Comprehensive test on JavaScript fundamentals, short answer prompts, and code analysis',
     totalQuestions: 4,
     duration: 30, // in minutes
@@ -49,6 +54,11 @@ const DEFAULT_TESTS = [
   {
     id: 'react-fundamentals',
     title: 'React Fundamentals & Component Architecture',
+    category: 'Web Development',
+    frequencyType: 'weekly',
+    attemptsAllowed: 2,
+    shuffleQuestions: true,
+    randomizeQuestions: true,
     description: 'React core concepts assessment with code snippets and short answer evaluations',
     totalQuestions: 4,
     duration: 45,
@@ -91,6 +101,11 @@ const DEFAULT_TESTS = [
   {
     id: 'html-css',
     title: 'HTML & CSS Design System',
+    category: 'UI/UX Design',
+    frequencyType: 'one_time',
+    attemptsAllowed: 1,
+    shuffleQuestions: false,
+    randomizeQuestions: false,
     description: 'HTML structure, CSS Flexbox/Grid, and box model short answer evaluation',
     totalQuestions: 3,
     duration: 20,
@@ -125,6 +140,11 @@ const DEFAULT_TESTS = [
   {
     id: 'db-basics',
     title: 'Database & SQL Engineering',
+    category: 'Database Systems',
+    frequencyType: 'monthly',
+    attemptsAllowed: 3,
+    shuffleQuestions: true,
+    randomizeQuestions: false,
     description: 'Relational database concepts, SQL joins, and key indexing evaluation',
     totalQuestions: 3,
     duration: 30,
@@ -159,6 +179,11 @@ const DEFAULT_TESTS = [
   {
     id: 'python-basics',
     title: 'Python Programming & Data Structures',
+    category: 'Data Science',
+    frequencyType: 'weekly',
+    attemptsAllowed: 5,
+    shuffleQuestions: true,
+    randomizeQuestions: true,
     description: 'Python syntax, list comprehensions, and data structures evaluation',
     totalQuestions: 3,
     duration: 40,
@@ -556,7 +581,26 @@ const DEFAULT_COHORTS = [
   }
 ];
 
+// Default System Users with multi-role assignment and active/inactive status
+const DEFAULT_SYSTEM_USERS = [
+  { id: 'u1', name: 'Arjun Sharma', email: 'arjun.sharma@example.com', roles: ['Student', 'Instructor'], userStatus: 'Active', addedOn: '20 May 2024' },
+  { id: 'u2', name: 'Priya Patel', email: 'priya.patel@example.com', roles: ['Test Creator', 'Instructor'], userStatus: 'Active', addedOn: '20 May 2024' },
+  { id: 'u3', name: 'Rahul Verma', email: 'rahul.verma@example.com', roles: ['Student'], userStatus: 'Active', addedOn: '19 May 2024' },
+  { id: 'u4', name: 'Sneha Reddy', email: 'sneha.reddy@example.com', roles: ['Test Creator', 'Student'], userStatus: 'Active', addedOn: '19 May 2024' },
+  { id: 'u5', name: 'Karan Mehta', email: 'karan.mehta@example.com', roles: ['Instructor'], userStatus: 'Inactive', addedOn: '19 May 2024' },
+  { id: 'u6', name: 'Anjali Singh', email: 'anjali.singh@example.com', roles: ['Student'], userStatus: 'Inactive', addedOn: '18 May 2024' },
+  { id: 'u7', name: 'Vikram Das', email: 'vikram.das@example.com', roles: ['Test Creator', 'Admin'], userStatus: 'Active', addedOn: '18 May 2024' },
+  { id: 'u8', name: 'Meera Kapoor', email: 'meera.kapoor@example.com', roles: ['Test Creator', 'Instructor'], userStatus: 'Active', addedOn: '17 May 2024' },
+  { id: 'u9', name: 'Rohan Gupta', email: 'rohan.gupta@example.com', roles: ['Student'], userStatus: 'Active', addedOn: '16 May 2024' },
+  { id: 'u10', name: 'Charan (Admin)', email: 'charan.admin@example.com', roles: ['Admin', 'Test Creator'], userStatus: 'Active', addedOn: '01 May 2024' }
+];
+
 export const AppProvider = ({ children }) => {
+  // System Users state
+  const [systemUsers, setSystemUsers] = useState(() => {
+    const saved = localStorage.getItem('shai_system_users');
+    return saved ? JSON.parse(saved) : DEFAULT_SYSTEM_USERS;
+  });
   // Authentication & Users
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('shai_user');
@@ -729,10 +773,15 @@ export const AppProvider = ({ children }) => {
     const formattedTest = {
       id: newTest.id || `test-${Date.now()}`,
       title: newTest.title,
+      category: newTest.category || 'General',
+      frequencyType: newTest.frequencyType || 'one_time',
+      attemptsAllowed: newTest.attemptsAllowed !== undefined ? newTest.attemptsAllowed : 1,
+      shuffleQuestions: !!newTest.shuffleQuestions,
+      randomizeQuestions: !!newTest.randomizeQuestions,
       description: newTest.description,
       totalQuestions: newTest.questions ? newTest.questions.length : 0,
       duration: parseInt(newTest.duration) || 30,
-      createdOn: new Date().toLocaleDateString('en-GB', {
+      createdOn: newTest.createdOn || new Date().toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',
         year: 'numeric'
@@ -748,6 +797,11 @@ export const AppProvider = ({ children }) => {
         return {
           ...test,
           title: updatedTest.title,
+          category: updatedTest.category !== undefined ? updatedTest.category : test.category,
+          frequencyType: updatedTest.frequencyType !== undefined ? updatedTest.frequencyType : test.frequencyType,
+          attemptsAllowed: updatedTest.attemptsAllowed !== undefined ? updatedTest.attemptsAllowed : test.attemptsAllowed,
+          shuffleQuestions: updatedTest.shuffleQuestions !== undefined ? updatedTest.shuffleQuestions : test.shuffleQuestions,
+          randomizeQuestions: updatedTest.randomizeQuestions !== undefined ? updatedTest.randomizeQuestions : test.randomizeQuestions,
           description: updatedTest.description,
           duration: parseInt(updatedTest.duration) || 30,
           totalQuestions: updatedTest.questions ? updatedTest.questions.length : test.totalQuestions,
@@ -977,11 +1031,46 @@ export const AppProvider = ({ children }) => {
     };
   };
 
+  // System Users LocalStorage Persistence
+  useEffect(() => {
+    localStorage.setItem('shai_system_users', JSON.stringify(systemUsers));
+  }, [systemUsers]);
+
+  // System Users Actions
+  const addSystemUser = (newUser) => {
+    const userObj = {
+      id: `u-${Date.now()}`,
+      name: newUser.name,
+      email: newUser.email || `${newUser.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      roles: Array.isArray(newUser.roles) && newUser.roles.length > 0 ? newUser.roles : ['Student'],
+      userStatus: newUser.userStatus || 'Active',
+      addedOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    };
+    setSystemUsers(prev => [userObj, ...prev]);
+  };
+
+  const updateSystemUser = (id, updatedData) => {
+    setSystemUsers(prev => prev.map(u => u.id === id ? { ...u, ...updatedData } : u));
+  };
+
+  const toggleUserStatus = (id) => {
+    setSystemUsers(prev => prev.map(u => u.id === id ? { ...u, userStatus: u.userStatus === 'Active' ? 'Inactive' : 'Active' } : u));
+  };
+
+  const deleteSystemUser = (id) => {
+    setSystemUsers(prev => prev.filter(u => u.id !== id));
+  };
+
   return (
     <AppContext.Provider value={{
       user,
       login,
       logout,
+      systemUsers,
+      addSystemUser,
+      updateSystemUser,
+      toggleUserStatus,
+      deleteSystemUser,
       tests,
       createTest,
       updateTest,

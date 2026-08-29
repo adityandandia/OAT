@@ -307,11 +307,18 @@ const TestTaking = () => {
         </button>
 
         <div className="flex flex-col items-center">
-          <h1 className="font-display font-extrabold text-base text-gray-800 tracking-wide select-none">
-            {activeTest.title}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display font-extrabold text-base text-gray-800 tracking-wide select-none">
+              {activeTest.title}
+            </h1>
+            {activeTest.category && (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-purple-100 text-purple-900 border border-purple-200">
+                {activeTest.category}
+              </span>
+            )}
+          </div>
           <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-            Assessment Engine • Multi-Format Testing
+            {activeTest.attemptsAllowed ? `${activeTest.attemptsAllowed} Attempt(s) Allowed` : 'Assessment Engine'} • {activeTest.frequencyType ? `Frequency: ${activeTest.frequencyType}` : 'Multi-Format Testing'}
           </span>
         </div>
 
