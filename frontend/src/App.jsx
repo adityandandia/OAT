@@ -7,6 +7,8 @@ import CreatorDashboard from './views/CreatorDashboard.jsx';
 import AdminDashboard from './views/AdminDashboard.jsx';
 import CourseEditor from './views/CourseEditor.jsx';
 import TestTaking from './views/TestTaking.jsx';
+import AllTestsPage from './services/pages/AllTestsPage.jsx';
+import CoursePage from './pages/CoursePage.jsx';
 
 // Helper function to check role equivalence
 const isRoleAllowed = (userRole, allowedRole) => {
@@ -68,6 +70,8 @@ function App() {
   return (
     <HashRouter>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
+
         {/* Guest Routes */}
         <Route 
           path="/login" 
@@ -75,6 +79,24 @@ function App() {
             <RequireGuest>
               <Login />
             </RequireGuest>
+          } 
+        />
+
+        <Route 
+          path="/all-tests" 
+          element={
+            <RequireAuth>
+              <AllTestsPage />
+            </RequireAuth>
+          } 
+        />
+
+        <Route 
+          path="/course" 
+          element={
+            <RequireAuth>
+              <CoursePage />
+            </RequireAuth>
           } 
         />
 
